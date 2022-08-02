@@ -1,0 +1,85 @@
+<!-- for help debugging deviceorientation -->
+
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <title>Orientation</title>
+        <link href='https://fonts.googleapis.com/css?family=Saira' rel='stylesheet'>
+    </head>
+    <body>
+        <canvas id='canvas' width='700' height='700'>error</canvas>
+
+        <script>
+            function clearCanvas() {
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+            }
+
+            function handleDeviceMvmt(event) {
+                // forward (positive) to backward (negative) motion of the device
+                const beta = event.beta;
+                // right (positive) to left (negative) motion of the device
+                const gamma = event.gamma;
+
+                betaDelta = oldBeta - beta;
+                gammaDelta = oldGamma - gamma;
+
+                console.log('deviceorientation', {
+                    beta: event.beta, old_beta: oldBeta, beta_delta: betaDelta,
+                    gamma: event.gamma, old_gamma: oldGamma, gamma_delta: gammaDelta,
+                });
+
+                if (betaDelta < -sensitivity) {
+                    if (direction !== 'UP') { direction = 'DOWN'; }
+                    oldBeta = beta;
+                } else if (betaDelta > sensitivity) {
+                    if (direction !== 'DOWN') { direction = 'UP'; }
+                    oldBeta = beta;
+                } else if (gammaDelta < -sensitivity) {
+                    if (direction !== 'LEFT') { direction = 'RIGHT'; }
+                    oldGamma = gamma;
+                } else if (gammaDelta > sensitivity) {
+                    if (direction !== 'RIGHT') { direction = 'LEFT'; }
+                    oldGamma = gamma;
+                }
+
+                if (direction) {
+                    console.log(`going${direction}`);
+                }
+
+                clearCanvas();
+                ctx.font = (50 * ratio) + 'px "Saira", serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'black'
+                ctx.fillText(direction, canvas.width / 2, canvas.height / 2, canvas.width / 2);
+            }
+
+            // get the canvas element
+            const canvas = document.getElementById('canvas');
+            // return a 2d drawing context
+            const ctx = canvas.getContext('2d');
+
+            var ratio = window.devicePixelRatio || 1
+            canvas.style.width = canvas.width + "px"
+            canvas.style.height = canvas.height + "px"
+            canvas.width *= ratio
+            canvas.height *= ratio
+
+            console.log({
+                'ratio': ratio,
+                'canvas.width': canvas.width,
+                'canvas.height': canvas.height,
+                'canvas.style.width': canvas.style.width,
+                'canvas.style.height': canvas.style.height
+            })
+
+            let direction = '';
+            let oldBeta = 0, oldGamma = 0;
+            let sensitivity = 20;
+
+            window.addEventListener('deviceorientation', handleDeviceMvmt);
+        </script>
+    </body>
+</html>
