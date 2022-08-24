@@ -6,13 +6,19 @@
         <title>SNEK</title>
         <link href='https://fonts.googleapis.com/css?family=Saira' rel='stylesheet'>
         <link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>'>
-        <!-- <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css' rel='stylesheet'> -->
+        <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css' rel='stylesheet'>
     </head>
     <body>
-
-        <canvas id='gameCanvas' width='300' height='300'>something's wrong</canvas>
+        <div id='controlPanel' width='300' height='50'></div>
+        <canvas id='gameCanvas' width='300' height='250'>sorry, canvas is not supported by your browser</canvas>
 
         <style>
+            #controlPanel {
+                position: absolute;
+                left: 50%;
+                transform: translate(-50%, 0%);
+            }
+
             #gameCanvas {
                 position: absolute;
                 top: 50%;
@@ -20,20 +26,18 @@
                 transform: translate(-50%, -50%);
                 border: 2px solid darkgreen;
             }
-
-            #score {
-                text-align: center;
-                font-size: 100px;
-                font-family: 'Saira', serif;
-            }
         </style>
     </body>
 
     <script>
         const CANVAS_ID = 'gameCanvas';
+        const CONTROL_PANEL_ID = 'controlPanel';
+        const MOTION_REQUEST_BUTTON_ID = 'motionRequest';
+
+        const CTRL_PANEL_HEIGHT = 50;  // pixels
 
         const GAME_SPEED = 100;  // milliseconds
-        const MVMT_SENSITIVITY =  15;  // degree of motion
+        const MVMT_SENSITIVITY =  15;  // degree of motion needed to consider a device mvmt as intentional
         const SWIPE_SENSITIVITY = 10;  // delta of pixels needed to consider touch mvmt a 'swipe'
         const SCORE_INCREMENT = 10;
         const NUM_STEPS_ACROSS_CANVAS = 30;
@@ -47,10 +51,21 @@
         const GAME_TEXT_COLOR = 'gray';
         const GAME_TEXT_FONT_SIZE = 50;
         const GAME_TEXT_FONT_FAMILY = '"Saira", serif';
+        const PAUSE_BTN_COLOR = 'darkgreen';
+        const PAUSE_ICON_CHAR_CODE = 0xF4BF;
+        const EXCLAMATION_BTN_COLOR = 'darkkhaki';
+        const EXCLAMATION_ICON_CHAR_CODE = 0xF33A;
 
         const NO_FILTER = 'none';
         const PAUSE_FILTER = 'contrast(1.4) sepia(1)';
         const ENDGAME_FILTER = 'grayscale(0.8) blur(0.5px)';
+
+        const SPACE_KEY = 'Space';
+        const LEFT_KEY = 'ArrowLeft';
+        const RIGHT_KEY = 'ArrowRight';
+        const UP_KEY = 'ArrowUp';
+        const DOWN_KEY = 'ArrowDown';
+        const ARROW_KEYS = new Set([LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY]);
 
         // <!-- DRAWING HELPERS BELOW -->
 
@@ -59,14 +74,14 @@
          * for sharpness https://stackoverflow.com/a/8696641
         **/
         function withStraddle(cb) {
-            const offset = 0.5
+            const offset = 0.5;
 
             try {
-                // turn on 'straddle' trick for blurriness
+                // turn on 'straddle' trick to avoid blurriness
                 CTX.translate(offset, offset);
                 cb();
             } finally {
-                // turn off 'straddle' trick for blurriness
+                // turn off 'straddle' trick to avoid blurriness
                 CTX.translate(-offset, -offset);
             }
         }
@@ -79,10 +94,19 @@
                 CTX.strokeStyle = CANVAS_BORDER_COLOR;
                 CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
-                // add full screen icon https://icons.getbootstrap.com/icons/arrows-fullscreen/
-                // CTX.font = (25 * RATIO) + 'px "bootstrap-icons"';
-                // CTX.fillStyle = 'darkgreen';
-                // CTX.fillText(String.fromCharCode(0xF14D), 20 * RATIO, 35 * RATIO);
+                if (IS_PAUSED) {
+                    USE_EXCLAMATION = document.getElementById(MOTION_REQUEST_BUTTON_ID) !== null;
+
+                    // since filters don't work on iOS safari, we need another visual aid
+                    // add pause button icon https://icons.getbootstrap.com/icons/pause-btn-fill/
+                    // or exclamation triangle icon if we still need permissions
+                    // https://icons.getbootstrap.com/icons/exclamation-triangle-fill/
+                    CTX.font = (GAME_TEXT_FONT_SIZE * RATIO) + 'px "bootstrap-icons"';
+                    CTX.fillStyle = USE_EXCLAMATION ? EXCLAMATION_BTN_COLOR : PAUSE_BTN_COLOR;
+                    CTX.fillText(String.fromCharCode(
+                        USE_EXCLAMATION ? EXCLAMATION_ICON_CHAR_CODE : PAUSE_ICON_CHAR_CODE
+                    ), x = 30 * RATIO, y = 50 * RATIO);
+                }
             });
         }
 
@@ -120,6 +144,22 @@
             CTX.fillText('DED', CANVAS.width / 2, CANVAS.height / 2, CANVAS.width);
         }
 
+        function createMotionRequestBtn() {
+            let btn = document.createElement('button');
+            btn.innerHTML = 'Allow Motion Control';
+            btn.setAttribute('id', MOTION_REQUEST_BUTTON_ID);
+            btn.type = 'button'
+            document.getElementById(CONTROL_PANEL_ID).appendChild(btn);
+            return btn;
+        }
+
+        function removeMotionRequestBtn() {
+            btn = document.getElementById(MOTION_REQUEST_BUTTON_ID);
+            if (btn) {
+                btn.parentNode.removeChild(btn);
+            }
+        }
+
         // <!-- EVENT CALLBACKS BELOW -->
 
         function enterFullScreen() {
@@ -145,10 +185,13 @@
             if (CHANGING_DIRECTION) { return; }
             CHANGING_DIRECTION = true;
 
-            const LEFT_KEY = 37;
-            const RIGHT_KEY = 39;
-            const UP_KEY = 38;
-            const DOWN_KEY = 40;
+            if (ARROW_KEYS.has(keyPressed)) {
+                // once user starts using arrow controls, disable motion control, as having
+                // both keyboard and motion event listeners makes the game less responsive
+                removeMotionRequestBtn();
+                window.removeEventListener('deviceorientation', handleDeviceMvmt);
+                MOTION_AVAILABLE = false;
+            }
 
             const goingUp = DY === -BLOCK_SIZE;
             const goingDown = DY === BLOCK_SIZE;
@@ -209,10 +252,8 @@
             CANVAS.addEventListener('touchend', handleTouchEnd);
         }
 
-        function handleUserInput(event) {
-            const SPACE_KEY = 32;
-
-            const keyPressed = event.keyCode;
+        function handleKeyInput(event) {
+            const keyPressed = event.code;
 
             if (keyPressed === SPACE_KEY) {
                  pauseGame();
@@ -243,6 +284,12 @@
             betaDelta = LAST_BETA - beta;
             gammaDelta = LAST_GAMMA - gamma;
 
+            if (betaDelta > Math.abs(MVMT_SENSITIVITY) || gammaDelta > Math.abs(MVMT_SENSITIVITY)) {
+                // once user starts using motion control, disable keyboard controls, as having
+                // both keyboard and motion event listeners makes the game less responsive
+                document.removeEventListener('keydown', handleKeyInput);
+            }
+
             if (betaDelta < -MVMT_SENSITIVITY) {
                 if (!goingUp) { dir = 'DOWN'; DX = 0; DY = BLOCK_SIZE; LAST_GAMMA = gamma; }
                 LAST_BETA = beta;
@@ -266,6 +313,27 @@
             if (document.hidden && !IS_PAUSED) {
                 pauseGame();
             }
+        }
+
+        function requestDeviceOrientation() {
+            DeviceOrientationEvent.requestPermission()
+                .then( response => {
+                if ( response === 'granted' ) {
+                    enableMotionControl();
+                }
+            })
+                .catch( console.error )
+        }
+
+        /**
+         * disable keyboard, enable motion, remove button,
+         * and un-pause game
+         */
+        function enableMotionControl() {
+            document.removeEventListener('keydown', handleKeyInput);
+            window.addEventListener('deviceorientation', handleDeviceMvmt);
+            removeMotionRequestBtn();
+            pauseGame();
         }
 
         // <!-- GAME STATE HELPERS BELOW -->
@@ -329,8 +397,7 @@
             // set initial user score
             SCORE = 0;
 
-            IS_PAUSED = false;
-            IS_END = false;
+            IS_PAUSED = IS_END = false;
             ACTIVE_FILTER = NO_FILTER;
         }
 
@@ -356,16 +423,16 @@
         }
 
         function restartGame(event) {
-            const SPACE_KEY = 32;
+            if (event.code === SPACE_KEY || event.type === 'click' || event.type === 'touchend') {
+                if (!MOTION_AVAILABLE) {
+                    document.removeEventListener('keydown', restartGame);
+                    document.addEventListener('keydown', handleKeyInput);
+                }
+                document.removeEventListener('click', restartGame);
+                document.addEventListener('click', pauseGame);
 
-            if (event.keyCode === SPACE_KEY || event.type === 'click' || event.type === 'touchend') {
-                 document.removeEventListener('keydown', restartGame);
-                 document.removeEventListener('click', restartGame);
-                 document.addEventListener('keydown', handleUserInput);
-                 document.addEventListener('click', pauseGame);
-
-                 initGame();
-                 runGame(SNAKE, FOOD);
+                initGame();
+                runGame(SNAKE, FOOD);
             }
         }
 
@@ -381,10 +448,11 @@
                 drawGameEnd();
 
                 // allow for game restart
-                document.removeEventListener('keydown', handleUserInput);
+                if (!MOTION_AVAILABLE) {
+                    document.removeEventListener('keydown', handleKeyInput);
+                    document.addEventListener('keydown', restartGame);
+                }
                 document.removeEventListener('click', pauseGame);
-
-                document.addEventListener('keydown', restartGame);
                 document.addEventListener('click', restartGame);
 
                 return;
@@ -428,17 +496,25 @@
         // return a 2d drawing context
         const CTX = CANVAS.getContext('2d');
 
+        // get the control panel
+        const CTRL_PANEL = document.getElementById(CONTROL_PANEL_ID);
+
         // take the min(width, height), find closest number divisible by desired # of total steps across the canvas,
         // and use this as the width + height of the square canvas
-        rawSize = Math.min(window.innerWidth, window.innerHeight);
+        rawSize = Math.min(window.innerWidth, window.innerHeight) - CTRL_PANEL_HEIGHT;
         quotient = parseInt(rawSize / NUM_STEPS_ACROSS_CANVAS);
         // subtracting NUM_STEPS_ACROSS_CANVAS below to allow some whitespace around the game canvas
         adjustedSize = quotient * NUM_STEPS_ACROSS_CANVAS - NUM_STEPS_ACROSS_CANVAS;
 
+        // handle rendering difference between a standard display vs a HiDPI or Retina display
         var RATIO = window.devicePixelRatio || 1;
-        CANVAS.style.width = adjustedSize + 'px';
+
+        CANVAS.style.width = CTRL_PANEL.style.width = adjustedSize + 'px';
         CANVAS.style.height = adjustedSize + 'px';
-        CANVAS.width = CANVAS.height = adjustedSize * RATIO;
+        CTRL_PANEL.style.height = CTRL_PANEL_HEIGHT + 'px';
+        CANVAS.width = CTRL_PANEL.width = adjustedSize * RATIO;
+        CANVAS.height = CANVAS.width;
+        CTRL_PANEL.height = CTRL_PANEL_HEIGHT * RATIO;
 
         let BLOCK_SIZE = CANVAS.width / NUM_STEPS_ACROSS_CANVAS;
 
@@ -449,34 +525,53 @@
         // })
 
         // call change direction on key press
-        document.addEventListener('keydown', handleUserInput);
+        document.addEventListener('keydown', handleKeyInput);
         // pause game on click or if game becomes hidden
         document.addEventListener('click', pauseGame);
         document.addEventListener('visibilitychange', handleVisibilityChange, false);
+        // enter full screen on double click (for devices that support this event)
         document.addEventListener('dblclick', enterFullScreen);
-
-        // touch/mobile event stuff
+        // enter full screen on swipe (for touch/mobile devices)
         handleSwipeToFullScreen();
-        // TODO: this makes the game less responsive to key press
-        window.addEventListener('deviceorientation', handleDeviceMvmt);
 
         // declare globals to be defined by initGame
         // TODO: it would be nicer not to have globals
-        let SNAKE, DX, DY, CHANGING_DIRECTION, LAST_BETA, LAST_GAMMA, FOOD, SCORE, IS_PAUSED, IS_END, ACTIVE_FILTER;
+        let SNAKE, DX, DY, CHANGING_DIRECTION, LAST_BETA, LAST_GAMMA,
+            FOOD, SCORE, IS_PAUSED, PAUSED_DX, PAUSED_DY, IS_END, ACTIVE_FILTER;
 
         initGame();
+
+        let MOTION_AVAILABLE = false;
+        if ( typeof(DeviceOrientationEvent) !== 'undefined' ) {
+            MOTION_AVAILABLE = true;
+
+            // if browser (e.g., iOS safari) requires permission for deviceorientation, request it
+            if ( typeof(DeviceOrientationEvent.requestPermission) === 'function' ) {
+                btn = createMotionRequestBtn();
+                btn.addEventListener('click', requestDeviceOrientation);
+
+                // give user time to grant permission
+                pauseGame();
+            }
+            else {
+                window.addEventListener('deviceorientation', handleDeviceMvmt);
+            }
+        }
+
         runGame(SNAKE, FOOD);
 
         // TODO: extension ideas
             // [from my baby] if snake eats a 'phase' power up (purple), allow snake to go through self once (per power up)
-            // if snake eats a 'teleport' power up, allow snake to go through a wall to the opposite side of board once (per power up)
+            // if snake eats a 'teleport' power up (blue), allow snake to go through a wall to the opposite side of board once (per power up)
             // some sort of efficiency penalty for 'snaking around' a lot (more blocks travelled, more time spent) ?
             // add sensitity, game speed sliders to UI
-            // requestAnimationFrame instead of setTimeout ?
+            // requestAnimationFrame instead of setTimeout https://stackoverflow.com/a/38709924
+                // more: https://dev.to/moyedx3/10-settimeout-setinterval-and-requestanimationframe-1io4
             // high score tracking
-            // provide toggle for deviceorientation listener (to make game more responsive)
             // debug mode: extra logging, output info to screen (like canvas dimensions, etc.)
             // "snek refers to images of snakes with interior monologue captioning applied" (knowyourmeme)
                 // -- add thought bubbles at random as the snek eats its food?
+            // iOS safari issues:
+                // swipe up to full screen not working
     </script>
 </html>
