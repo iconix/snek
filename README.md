@@ -2,14 +2,21 @@
 
 Learning HTML5 canvas for making 2D games.
 
-Demo (working as of 8/2/22): https://snek-62de1.web.app
+## demo (working as of sep 2022): https://snek-62de1.web.app
+
+## locally build and run project
+
+```bash
+λ npm install
+λ npm run server
+```
 
 ## firebase hosting
 
 ```bash
-$ nvm use --lts
-$ npm install -g firebase-tools
-$ firebase login
-$ firebase init
-$ firebase deploy
+λ nvm use --lts
+λ npm install -g firebase-tools
+λ firebase login
+λ firebase init  # one-time setup
+λ firebase deploy
 ```
