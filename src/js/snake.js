@@ -85,10 +85,13 @@ export class Snake {
     }
 
     changeDirectionByMvmt(beta, gamma, lastBeta, lastGamma, sensitivity) {
+        let newBeta = lastBeta;
+        let newGamma = lastGamma;
+
         if (this.isChangingDirection) {
             return {
-                newBeta: lastBeta,
-                newGamma: lastGamma
+                newBeta: newBeta,
+                newGamma: newGamma
             };
         }
         this.isChangingDirection = true;
@@ -101,7 +104,7 @@ export class Snake {
         const goingRight = this._dx === this._blockSize;
         const goingLeft = this._dx === -this._blockSize;
 
-        let newBeta, newGamma;
+        let dir;
         if (betaDelta < -sensitivity) {
             if (!goingUp) { dir = 'DOWN'; this._dx = 0; this._dy = this._blockSize; newGamma = gamma; }
             newBeta = beta;

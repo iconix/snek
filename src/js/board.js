@@ -112,8 +112,16 @@ export class Board {
     }
 
     addTouchHandlers(handleTouchStart, handleTouchEnd) {
+        this._handleTouchStart = handleTouchStart;
+        this._handleTouchEnd = handleTouchEnd;
+
         this._canvas.addEventListener('touchstart', handleTouchStart);
         this._canvas.addEventListener('touchend', handleTouchEnd);
+    }
+
+    removeTouchHandlers() {
+        if (this._handleTouchStart) this._canvas.removeEventListener('touchstart', this._handleTouchStart);
+        if (this._handleTouchEnd) this._canvas.removeEventListener('touchend', this._handleTouchEnd);
     }
 
     _calculateBoardSize() {

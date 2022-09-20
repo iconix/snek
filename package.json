@@ -12,17 +12,17 @@
         "url": "http://github.com/cferdinandi/build-tools-boilerplate"
     },
     "scripts": {
-        "clean": "recursive-delete public",
+        "clean": "recursive-delete dist",
         "js": "rollup --config",
-        "copy-css": "recursive-copy src/css public",
-        "copy-html": "recursive-copy src/html public",
+        "copy-css": "recursive-copy src/css dist",
+        "copy-html": "recursive-copy src/html dist",
         "build-dirty": "npm-run-all -p js copy-css copy-html",
         "build": "npm-run-all -s clean build-dirty",
         "watch-js": "chokidar ./src/**/*.js -c \"npm run js\"",
         "watch-css": "chokidar ./src/**/*.css -c \"npm run copy-css\"",
         "watch-html": "chokidar ./src/**/*.html -c \"npm run copy-html\"",
         "watch": "npm-run-all -p build watch-js watch-css watch-html",
-        "server-start": "browser-sync start --files 'public' --server --no-open",
+        "server-start": "browser-sync start --files 'dist' --server --no-open",
         "server": "npm-run-all -p watch server-start"
     },
     "devDependencies": {

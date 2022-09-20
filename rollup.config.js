@@ -10,7 +10,7 @@ var configs = {
 	formats: ['es'],
 	default: 'es',
 	pathIn: 'src/js',
-	pathOut: 'public',
+	pathOut: 'dist',
 	minify: true,
 	sourceMap: true
 };

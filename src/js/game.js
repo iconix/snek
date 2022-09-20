@@ -15,19 +15,14 @@ const SWIPE_SENSITIVITY = 10;  // delta of pixels needed to consider touch mvmt 
 const MOTION_SENSITIVITY = 15;  // degree of motion needed to consider a device mvmt as intentional
 
 const SPACE_KEY = 'Space';
-const ARROW_KEYS = new Set([LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY]);
-
-// TODO: can this go back into Game ?
-// this helps with lag
-// but there's a subtle bug with it where if the user doesn't play, we assume motion
-// is available, so on game end they cannot restart with space bar
-let MOTION_AVAILABLE = false;
+const KEY_CONTROLS = new Set([LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY, SPACE_KEY]);
 
 export class Game {
     constructor(board, snake, food, speed) {
         this._board = board;
         this._snake = snake;
         this._food = food;
+        this._motionAvailable = false;
         this._score = 0;
         this._paused = false;
         this._ended = false;
@@ -122,14 +117,29 @@ export class Game {
 
         drawGameEnd(this._board);
 
-        // allow for game restart
+        // bind `this` to game in event handler
+        this._restart = this._restart.bind(this);
 
-        //if (!MOTION_AVAILABLE) {
+        // allow for game restart
+        if (!this._motionAvailable) {
             document.removeEventListener('keydown', this._handleKeyInput);
-            document.addEventListener('keydown', restartGame);
-        //}
+            document.addEventListener('keydown', this._restart);
+        } else {
+            // alwways allow restart with space bar
+            document.addEventListener('keydown', this._restart);
+        }
         document.removeEventListener('click', this._togglePause);
-        document.addEventListener('click', restartGame);
+        document.addEventListener('click', this._restart);
+    }
+
+    _restart(event) {
+        if (event.code === SPACE_KEY || event.type === 'click' || event.type === 'touchend') {
+            document.removeEventListener('keydown', this._restart);
+            document.removeEventListener('click', this._restart);
+            this._board.removeTouchHandlers();
+
+            restartGame();
+        }
     }
 
     _togglePause() {
@@ -149,11 +159,14 @@ export class Game {
     _setupControls() {
         this._lastBeta = this._lastGamma = 0;
 
+        // bind `this` to game in event handlers
         this._handleDeviceMvmt = this._handleDeviceMvmt.bind(this);
         this._handleKeyInput = this._handleKeyInput.bind(this);
         this._handleVisibilityChange = this._handleVisibilityChange.bind(this);
         this._requestDeviceOrientation = this._requestDeviceOrientation.bind(this);
         this._togglePause = this._togglePause.bind(this);
+
+        // bind `this` to board in event handler
         this._board.enterFullScreen = this._board.enterFullScreen.bind(this._board);
 
         // call change direction on key press
@@ -170,7 +183,9 @@ export class Game {
         this._handleSwipeToFullScreen();
 
         if ( typeof(DeviceOrientationEvent) !== 'undefined' ) {
-            //MOTION_AVAILABLE = true;
+            this._motionAvailable = true;
+
+            console.log('motion controls activated');
 
             // if browser (e.g., iOS safari) requires permission for deviceorientation, request it
             if ( typeof(DeviceOrientationEvent.requestPermission) === 'function' ) {
@@ -195,12 +210,14 @@ export class Game {
 
         this._snake.changeDirectionByKey(keyPressed);
 
-        if (ARROW_KEYS.has(keyPressed)) {
-            // once user starts using arrow controls, disable motion control, as having
+        if (KEY_CONTROLS.has(keyPressed)) {
+            if (this._motionAvailable && !this._ended) console.log('key controls activated');
+
+            // once user starts using key controls, disable motion control, as having
             // both keyboard and motion event listeners makes the game less responsive
             this._board.removeMotionRequestBtn();
             window.removeEventListener('deviceorientation', this._handleDeviceMvmt);
-            //MOTION_AVAILABLE = false;
+            this._motionAvailable = false;
         }
     }
 
@@ -210,13 +227,13 @@ export class Game {
         // right (positive) to left (negative) motion of the device
         const gamma = event.gamma;
 
+        let betaDelta = this._lastBeta - beta;
+        let gammaDelta = this._lastGamma - gamma;
+
         // console.log('deviceorientation', {
         //     beta: event.beta, last_beta: this._lastBeta, beta_delta: betaDelta,
         //     gamma: event.gamma, last_gamma: this._lastGamma, gamma_delta: gammaDelta,
         // });
-
-        let betaDelta = this._lastBeta - beta;
-        let gammaDelta = this._lastGamma - gamma;
 
         if (betaDelta > Math.abs(MOTION_SENSITIVITY) || gammaDelta > Math.abs(MOTION_SENSITIVITY)) {
             // once user starts using motion control, disable keyboard controls, as having
@@ -224,7 +241,7 @@ export class Game {
             document.removeEventListener('keydown', this._handleKeyInput);
         }
 
-        let newMvmt = this._snake.changeDirectionByMvmt(event.beta, event.gamma, MOTION_SENSITIVITY);
+        let newMvmt = this._snake.changeDirectionByMvmt(event.beta, event.gamma, this._lastBeta, this._lastGamma, MOTION_SENSITIVITY);
 
         this._lastBeta = newMvmt.newBeta;
         this._lastGamma = newMvmt.newGamma;
@@ -240,17 +257,19 @@ export class Game {
         let downY = 0;
         let upY = 0;
 
+        let thisGame = this;
         function handleGesture(ev) {
             if (upY < downY && downY - upY > SWIPE_SENSITIVITY) {
                 // console.log(`swiped UP ${downY-upY}px`);
-                this._board.enterFullScreen();
+                thisGame._board.enterFullScreen();
             } else if (upY > downY && upY - downY > SWIPE_SENSITIVITY) {
                 // console.log(`swiped DOWN ${upY-downY}px`);
-                this._board.exitFullScreen();
-            } else if (this._ended) {
-                restartGame(ev);
+                thisGame._board.exitFullScreen();
+            } else if (thisGame._ended) {
+                thisGame._restart(ev);
             } else {
-                this._togglePause();
+                // console.log(`togglePause from handleGesture`);
+                thisGame._togglePause();
             }
         }
 
@@ -289,8 +308,7 @@ export class Game {
             if ( response === 'granted' ) {
                 this._enableMotionControl();
             }
-        })
-            .catch( console.error )
+        }).catch( console.error );
     }
 
     /**
@@ -320,15 +338,7 @@ export function initGame() {
     return game;
 }
 
-function restartGame(event) {
-    if (event.code === SPACE_KEY || event.type === 'click' || event.type === 'touchend') {
-
-        //if (!MOTION_AVAILABLE) {
-            document.removeEventListener('keydown', restartGame);
-        //}
-        document.removeEventListener('click', restartGame);
-
-        let game = initGame();
-        game.run();
-    }
+function restartGame() {
+    let game = initGame();
+    game.run();
 }
