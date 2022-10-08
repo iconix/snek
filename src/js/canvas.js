@@ -1,10 +1,6 @@
-const CANVAS_BACKGROUND_COLOR = 'white';
-const CANVAS_BORDER_COLOR = 'darkgreen';
 const EXCLAMATION_BTN_COLOR = 'darkkhaki';
 const GAME_TEXT_COLOR = 'gray';
 const PAUSE_BTN_COLOR = 'darkgreen';
-const SNAKE_BORDER_COLOR = 'darkgreen';
-const SNAKE_COLOR = 'lightgreen';
 
 const GAME_TEXT_FONT_FAMILY = '"Saira", serif';
 
@@ -35,10 +31,25 @@ export function drawGame(game) {
     let ctx = board.ctx;
 
     withStraddle(ctx, () => {
-        // set border and background colors
         ctx.filter = board.activeFilter;
-        ctx.fillStyle = CANVAS_BACKGROUND_COLOR;
-        ctx.strokeStyle = CANVAS_BORDER_COLOR;
+
+        // set border and background colors
+        ctx.fillStyle = board.color;
+        if (board.isGlowing) {
+            // n.b. strokeRect doesn't do a good job of bordering the canvas,
+            // so we fall back to CSS styling
+
+            // https://stackoverflow.com/a/5670984
+            board.canvas.style.border = 'none'
+            board.canvas.style.outline = `${board.borderColor} dashed thin`;
+            board.canvas.style.boxShadow = `0 0 10px ${board.color}`;
+            board.canvas.style.transition = 'box-shadow linear 1s';
+        } else {
+            board.canvas.style.border = `2px solid ${board.borderColor}`;
+            board.canvas.style.outline = 'none';
+            board.canvas.style.boxShadow = 'none';
+            board.canvas.style.transition = 'box-shadow linear 0.5s';
+        }
 
         ctx.fillRect(0, 0, board.canvas.width, board.canvas.height);
 
@@ -59,16 +70,21 @@ export function drawGame(game) {
 }
 
 export function drawSnake(snake, board) {
-    // TODO: avoid private access here
-    snake._body.forEach(snakePart => drawSnakePart(snakePart, board));
+    snake.body.forEach(snakePart => drawSnakePart(
+        snakePart,
+        snake.color,
+        snake.borderColor,
+        snake.isGlowing,
+        board
+    ));
 }
 
 export function drawItem(item, board) {
     let ctx = board.ctx;
 
     withStraddle(ctx, () => {
-        ctx.fillStyle = item.fill_color;
-        ctx.strokeStyle = item.border_color;
+        ctx.fillStyle = item.fillColor;
+        ctx.strokeStyle = item.borderColor;
         ctx.fillRect(item.x, item.y, board.blockSize, board.blockSize);
         ctx.strokeRect(item.x, item.y, board.blockSize, board.blockSize);
     });
@@ -92,13 +108,27 @@ export function drawGameEnd(board) {
     ctx.fillText('DED', board.canvas.width / 2, board.canvas.height / 2, board.canvas.width);
 }
 
-function drawSnakePart(snakePart, board) {
+function drawSnakePart(snakePart, color, borderColor, isGlowing, board) {
     let ctx = board.ctx;
 
     withStraddle(ctx, () => {
-        ctx.fillStyle = SNAKE_COLOR;
-        ctx.strokeStyle = SNAKE_BORDER_COLOR;
+        ctx.fillStyle = color;
+        ctx.strokeStyle = borderColor;
+
+        if (isGlowing) {
+            // https://stackoverflow.com/a/43676108
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = color;
+        }
+
         ctx.fillRect(snakePart.x, snakePart.y, board.blockSize, board.blockSize);
         ctx.strokeRect(snakePart.x, snakePart.y, board.blockSize, board.blockSize);
+
+        if (isGlowing) {
+            // reset to defaults
+            ctx.lineCap = 'butt';
+            ctx.shadowBlur = 0;
+        }
     });
 }

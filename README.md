@@ -4,6 +4,9 @@ Learning HTML5 canvas for making 2D games.
 
 ## demo (working as of sep 2022): https://snek-62de1.web.app
 
+- with motion controls for mobile!
+- with snek `Teleport` (through walls, pacman-style) and `Phase` (through its own body) power-ups!
+
 ## locally build and run project
 
 ```bash

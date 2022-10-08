@@ -1,32 +1,42 @@
 import { drawGame, drawGameEnd, drawItem, drawScore, drawSnake } from './canvas.js';
 import { Board } from './board.js';
-import { createItem } from './item.js';
+import { Food, Item, Phase, randomizeItem, Teleport } from './item.js';
 import { Snake, LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY } from './snake.js';
-
-const FOOD_COLOR = 'red';
-const FOOD_BORDER_COLOR = 'darkred';
 
 const CANVAS_ID = 'gameCanvas';
 const CONTROL_PANEL_ID = 'controlPanel';
 
-const GAME_SPEED = 100;  // milliseconds
-const SCORE_INCREMENT = 10;
+const GAME_SPEED__ARROW = 100;  // milliseconds
+const GAME_SPEED__MOTION = 125; // milliseconds, slow down game since harder with motion controls
 const SWIPE_SENSITIVITY = 10;  // delta of pixels needed to consider touch mvmt a 'swipe'
 const MOTION_SENSITIVITY = 15;  // degree of motion needed to consider a device mvmt as intentional
+
+const SCORE_INCREMENT = 10;
+const FOOD_STABILITY_SCORE_THRESHOLD = 100;
 
 const SPACE_KEY = 'Space';
 const KEY_CONTROLS = new Set([LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY, SPACE_KEY]);
 
 export class Game {
-    constructor(board, snake, food, speed) {
+    /**
+     * @param {Board} board
+     * @param {Snake} snake
+     * @param {Item} item
+     * @param {number} speed
+     */
+    constructor(board, snake, item, speed) {
         this._board = board;
         this._snake = snake;
-        this._food = food;
-        this._motionAvailable = false;
+        this._item = item;
+
         this._score = 0;
+
         this._paused = false;
         this._ended = false;
+
         this._speed = speed;
+
+        this._motionAvailable = null;
         this._lastBeta = 0;
         this._lastGamma = 0;
 
@@ -41,8 +51,8 @@ export class Game {
         return this._snake;
     }
 
-    get food() {
-        return this._food;
+    get item() {
+        return this._item;
     }
 
     get speed() {
@@ -51,10 +61,6 @@ export class Game {
 
     get score() {
         return this._score;
-    }
-
-    get activeFilter() {
-        return this._activeFilter;
     }
 
     get paused() {
@@ -69,7 +75,7 @@ export class Game {
 
             drawGame(this);
             drawScore(this._score, this._board);
-            drawItem(this._food, this._board);
+            drawItem(this._item, this._board);
             if (!this._paused) {
                 //console.log(`paused: ${this._paused}. advancing...`);
                 this._advanceSnake();
@@ -86,25 +92,39 @@ export class Game {
     _advanceSnake() {
         this._snake.advanceHead();
 
-        if (this._snake.didEat(this._food)) {
+        if (this._snake.didEat(this._item)) {
             this._score += SCORE_INCREMENT;
-            // TODO: at SCORE_THRESHOLDs, enable teleporting -- then phasing
-                // TELEPORT_THRESHOLD: 50
-                // PHASING_THRESHOLD: 150
-                // maybe higher threshold with arrow controls (easier game)?
-                // how often should each drop?
-                    // perhaps it always drops AT threshold, then gets random
-                // should they drop after eating or on random ticks (preferred)?
-            let newFood = createItem(this._board, this._snake, FOOD_COLOR, FOOD_BORDER_COLOR);
 
-            this._food = newFood;
+            this._snake.equip(this._item);
+
+            this._board.setGlow(this._snake.powerUps[Teleport]);
+
+            let itemClass = randomizeItem(this._score, this._snake.powerUps, true, false);
+
+            this._item = new itemClass(this._board, this._snake);
+            // console.log(`new ${this._item.fillColor.toUpperCase()} item`);
         } else {
+            const foodIsUnstable = this._score >= FOOD_STABILITY_SCORE_THRESHOLD;
+            // randomly regenerate item even if it wasn't eaten
+            if (foodIsUnstable || this._item instanceof Teleport || this._item instanceof Phase) {
+                let itemClass = randomizeItem(this._score, this._snake.powerUps, false, true);
+                if (itemClass !== null) {
+                    this._item = new itemClass(this._board, this._snake);
+                    // console.log(`new ${this._item.fillColor.toUpperCase()} item`);
+                }
+            }
+
             this._snake.advanceTail();
         }
+
+        // TODO: add to control panel
+        // console.log(`${this._item.type}: ${this._item.x}, ${this._item.y}`);
     }
 
     _didEnd() {
-        return this._snake.didCollide(this._board.width, this._board.height, this._board.blockSize);
+        const didCollide = this._snake.didCollide(this._board.width, this._board.height, this._board.blockSize);
+        this._board.setGlow(this._snake.powerUps[Teleport]);
+        return didCollide;
     }
 
     _end() {
@@ -112,7 +132,7 @@ export class Game {
         this._board.setEndGameFilter();
 
         drawGame(this);
-        drawItem(this._food, this._board);
+        drawItem(this._item, this._board);
         drawSnake(this._snake, this._board);
 
         drawGameEnd(this._board);
@@ -183,13 +203,9 @@ export class Game {
         this._handleSwipeToFullScreen();
 
         if ( typeof(DeviceOrientationEvent) !== 'undefined' ) {
-            this._motionAvailable = true;
-
-            console.log('motion controls activated');
-
             // if browser (e.g., iOS safari) requires permission for deviceorientation, request it
             if ( typeof(DeviceOrientationEvent.requestPermission) === 'function' ) {
-                btn = self._board.createMotionRequestBtn();
+                let btn = this._board.createMotionRequestBtn();
                 btn.addEventListener('click', this._requestDeviceOrientation);
 
                 // give user time to grant permission
@@ -204,14 +220,8 @@ export class Game {
     _handleKeyInput(event) {
         const keyPressed = event.code;
 
-        if (keyPressed === SPACE_KEY) {
-            this._togglePause();
-        }
-
-        this._snake.changeDirectionByKey(keyPressed);
-
         if (KEY_CONTROLS.has(keyPressed)) {
-            if (this._motionAvailable && !this._ended) console.log('key controls activated');
+            if (this._motionAvailable == null && !this._ended) console.log('key controls activated');
 
             // once user starts using key controls, disable motion control, as having
             // both keyboard and motion event listeners makes the game less responsive
@@ -219,6 +229,12 @@ export class Game {
             window.removeEventListener('deviceorientation', this._handleDeviceMvmt);
             this._motionAvailable = false;
         }
+
+        if (keyPressed === SPACE_KEY) {
+            this._togglePause();
+        }
+
+        this._snake.changeDirectionByKey(keyPressed);
     }
 
     _handleDeviceMvmt(event) {
@@ -235,10 +251,14 @@ export class Game {
         //     gamma: event.gamma, last_gamma: this._lastGamma, gamma_delta: gammaDelta,
         // });
 
-        if (betaDelta > Math.abs(MOTION_SENSITIVITY) || gammaDelta > Math.abs(MOTION_SENSITIVITY)) {
+        if (this._motionAvailable == null && (betaDelta > Math.abs(MOTION_SENSITIVITY) || gammaDelta > Math.abs(MOTION_SENSITIVITY))) {
             // once user starts using motion control, disable keyboard controls, as having
             // both keyboard and motion event listeners makes the game less responsive
             document.removeEventListener('keydown', this._handleKeyInput);
+
+            this._speed = GAME_SPEED__MOTION;
+            this._motionAvailable = true;
+            console.log('motion controls activated');
         }
 
         let newMvmt = this._snake.changeDirectionByMvmt(event.beta, event.gamma, this._lastBeta, this._lastGamma, MOTION_SENSITIVITY);
@@ -331,9 +351,9 @@ export function initGame() {
 
     let board = new Board(canvas, ctrl_panel);
     let snake = new Snake(board.height, board.height, board.blockSize);
-    let food = createItem(board, snake, FOOD_COLOR, FOOD_BORDER_COLOR);
+    let food = new Food(board, snake);
 
-    let game = new Game(board, snake, food, GAME_SPEED);
+    let game = new Game(board, snake, food, GAME_SPEED__ARROW);
 
     return game;
 }

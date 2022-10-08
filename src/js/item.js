@@ -1,22 +1,143 @@
-export function createItem(board, snake, fill_color, border_color) {
-    let item = {
-        x: randomBlock(0, board.width - board.blockSize, board.blockSize),
-        y: randomBlock(0, board.height - board.blockSize, board.blockSize),
-        fill_color: fill_color,
-        border_color: border_color,
-    };
+const FOOD_COLOR = 'red';
+const FOOD_BORDER_COLOR = 'darkred';
+const TELEPORT_COLOR = 'blue';
+const TELEPORT_BORDER_COLOR = 'darkblue';
+const PHASE_COLOR = 'orchid';
+const PHASE_BORDER_COLOR = 'violet';
 
-    // TODO: avoid private access here
-    snake._body.forEach(function isItemOnSnake(part) {
-        const itemIsOnSnake = part.x == item.x && part.y == item.y
-        if (itemIsOnSnake) item = createItem(board, snake, fill_color, border_color);
-    });
+const TELEPORT_SCORE_THRESHOLD = 50;
+const TELEPORT_PROBABILITY = 0.1;
+const PHASE_SCORE_THRESHOLD = 150;
+const PHASE_PROBABILITY = 0.1;
+const UNSTABLE_FOOD_PROBABILITY = 0.01;
 
-    return item;
+export class Item {
+    constructor(board, snake) {
+        this._generate(board, snake);
+    }
 
-    // TODO: constructor, getters (?)
+    get x() {
+        return this._x;
+    }
+
+    get y() {
+        return this._y;
+    }
+
+    get type() { return 'UNKNOWN_ITEM' }
+
+    get fillColor() { return '' }
+
+    get borderColor() { return '' }
+
+    _generate(board, snake) {
+        this._x = this._randomBlock(0, board.width - board.blockSize, board.blockSize);
+        this._y = this._randomBlock(0, board.height - board.blockSize, board.blockSize);
+
+        snake.body.forEach((snakePart) => {
+            const itemIsOnSnake = snakePart.x == this._x && snakePart.y == this._y
+            if (itemIsOnSnake) this._generate(board, snake);
+        });
+    }
+
+    _randomBlock(min, max, blockSize) {
+        return Math.round((Math.random() * (max-min) + min) / blockSize) * blockSize;
+    }
 }
 
-function randomBlock(min, max, blockSize) {
-    return Math.round((Math.random() * (max-min) + min) / blockSize) * blockSize;
+export class Food extends Item {
+    get type() { return 'FOOD' }
+
+    get fillColor() { return FOOD_COLOR }
+
+    get borderColor() { return FOOD_BORDER_COLOR }
+}
+
+export class Teleport extends Item {
+    get type() { return 'TELEPORT' }
+
+    get fillColor() { return TELEPORT_COLOR }
+
+    get borderColor() { return TELEPORT_BORDER_COLOR }
+}
+
+export class Phase extends Item {
+    get type() { return 'PHASE' }
+
+    get fillColor() { return PHASE_COLOR }
+
+    get borderColor() { return PHASE_BORDER_COLOR }
+}
+
+const ITEM_TYPES = {
+    none: null,
+    food: Food,
+    teleport: Teleport,
+    phase: Phase
+};
+
+export function randomizeItem(score, powerUps, alwaysReturnItem, lessPowerUps) {
+    // at SCORE_THRESHOLDs, enable powerups
+    // an item always drops AT its threshold; afterwards drops get random
+
+    let noItemProb = 0, foodProb = 0, teleportProb = 0, phaseProb = 0;
+    if (score == TELEPORT_SCORE_THRESHOLD) {
+        if (alwaysReturnItem) {
+            teleportProb = 1;
+        }
+    }
+    else if (score == PHASE_SCORE_THRESHOLD) {
+        if (alwaysReturnItem) {
+            phaseProb = 1;
+        }
+    } else if (score > TELEPORT_SCORE_THRESHOLD && !powerUps[Teleport]) {
+        if (lessPowerUps) {
+            teleportProb = TELEPORT_PROBABILITY / 10;
+        } else {
+            teleportProb = TELEPORT_PROBABILITY;
+        }
+    }
+
+    if (score > PHASE_SCORE_THRESHOLD && !powerUps[Phase]) {
+        if (lessPowerUps) {
+            phaseProb = PHASE_PROBABILITY / 10;
+        } else {
+            phaseProb = PHASE_PROBABILITY;
+        }
+    }
+
+    if (alwaysReturnItem) {
+        foodProb = 1 - teleportProb - phaseProb;
+    } else {
+        foodProb = UNSTABLE_FOOD_PROBABILITY;
+        noItemProb = 1 - teleportProb - phaseProb - foodProb;
+    }
+
+    let itemChances = {
+        none: noItemProb,
+        food: foodProb,
+        teleport: teleportProb,
+        phase: phaseProb,
+    }
+
+    // console.log(itemChances);
+
+    let itemClass = ITEM_TYPES[pickItem(itemChances, Math.random())];
+
+    return itemClass;
+}
+
+function pickItem(chances, p) {
+    // adapted from: https://gist.github.com/alesmenzel/6164543b3d018df7bcaf6c5f9e6a841e
+    const items = Object.keys(chances);
+
+    return items.find((_, i) => {
+        const sum = items.slice(0, i + 1).reduce((acc, el) => {
+            return acc + chances[el];
+        }, 0);
+
+        if (p < sum) return true;
+
+        return false;
+    });
 }

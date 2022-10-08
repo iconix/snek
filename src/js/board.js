@@ -1,6 +1,11 @@
 const CTRL_PANEL_HEIGHT = 50;  // pixels
 const NUM_STEPS_ACROSS_CANVAS = 30;
 
+const DEFAULT_BACKGROUND_COLOR = 'white';
+const DEFAULT_BORDER_COLOR = 'darkgreen';
+const TELEPORT_BORDER_COLOR = 'blue';
+const TELEPORT_BACKGROUND_COLOR = '#e2f1fa';  // a light blue
+
 const NO_FILTER = 'none';
 const PAUSE_FILTER = 'contrast(1.4) sepia(1)';
 const ENDGAME_FILTER = 'grayscale(0.8) blur(0.5px)';
@@ -27,6 +32,10 @@ export class Board {
         this._height = canvas.height;
         this._blockSize = canvas.width / NUM_STEPS_ACROSS_CANVAS;
 
+        this._color = DEFAULT_BACKGROUND_COLOR;
+        this._borderColor = DEFAULT_BORDER_COLOR;
+        this._isGlowing = false;
+
         this.resetFilter();
 
         // console.log({
@@ -38,6 +47,18 @@ export class Board {
 
     get canvas() {
         return this._canvas;
+    }
+
+    get color() {
+        return this._color;
+    }
+
+    get borderColor() {
+        return this._borderColor;
+    }
+
+    get isGlowing() {
+        return this._isGlowing;
     }
 
     get activeFilter() {
@@ -96,14 +117,29 @@ export class Board {
         btn.innerHTML = 'Allow Motion Control';
         btn.setAttribute('id', MOTION_REQUEST_BUTTON_ID);
         btn.type = 'button';
-        self._ctrlPanel.appendChild(btn);
+        this._ctrlPanel.appendChild(btn);
         return btn;
     }
 
     removeMotionRequestBtn() {
         let btn = document.getElementById(MOTION_REQUEST_BUTTON_ID);
-        if (btn) {
-            btn.parentNode.removeChild(btn);
+        btn?.parentNode?.removeChild(btn);
+    }
+
+    setGlow(shouldGlow) {
+        if (shouldGlow && !this._isGlowing) {
+            // n.b., since canvas border doesn't show in fullscreen mode, we tint the background too
+            this._color = TELEPORT_BACKGROUND_COLOR;
+            this._borderColor = TELEPORT_BORDER_COLOR;
+            this._isGlowing = true;
+            // console.log(`[board] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
+        }
+
+        if (!shouldGlow && this._isGlowing) {
+            this._color = DEFAULT_BACKGROUND_COLOR;
+            this._borderColor = DEFAULT_BORDER_COLOR;
+            this._isGlowing = false;
+            // console.log(`[board] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
         }
     }
 
@@ -128,7 +164,7 @@ export class Board {
         // take the min(width, height), find closest number divisible by desired # of total steps across the canvas,
         // and use this as the width + height of the square canvas
         let rawSize = Math.min(window.innerWidth, window.innerHeight) - CTRL_PANEL_HEIGHT;
-        let quotient = parseInt(rawSize / NUM_STEPS_ACROSS_CANVAS);
+        let quotient = rawSize / NUM_STEPS_ACROSS_CANVAS;
 
         // subtracting NUM_STEPS_ACROSS_CANVAS below to allow some whitespace around the game canvas
         return quotient * NUM_STEPS_ACROSS_CANVAS - NUM_STEPS_ACROSS_CANVAS;

@@ -1,3 +1,9 @@
+import { Phase, Teleport } from './item';
+
+const DEFAULT_BORDER_COLOR = 'darkgreen';
+const DEFAULT_COLOR = 'lightgreen';
+const PHASE_BORDER_COLOR = 'violet';
+
 export const LEFT_KEY = 'ArrowLeft';
 export const RIGHT_KEY = 'ArrowRight';
 export const UP_KEY = 'ArrowUp';
@@ -19,13 +25,35 @@ export class Snake {
         this._dx = this._dxAtPause = blockSize;
         this._dy = this._dyAtPause = 0;
 
+        this._color = DEFAULT_COLOR;
+        this._borderColor = DEFAULT_BORDER_COLOR;
+        this._isGlowing = false;
+
         this.isChangingDirection = false;
+        this.powerUps = {[Teleport]: false, [Phase]: false};
+    }
+
+    get body() {
+        return this._body;
+    }
+
+    get color() {
+        return this._color;
+    }
+
+    get borderColor() {
+        return this._borderColor;
+    }
+
+    get isGlowing() {
+        return this._isGlowing;
     }
 
     advanceHead() {
-        const head = {x: this._body[0].x + this._dx, y: this._body[0].y + this._dy};
+        const head = { x: this._body[0].x + this._dx, y: this._body[0].y + this._dy };
         this._body.unshift(head);
 
+        // TODO: add to control panel
         // console.log(`HEAD: ${head.x}, ${head.y}`);
     }
 
@@ -48,7 +76,30 @@ export class Snake {
     }
 
     didEat(item) {
-        return this._body[0].x === item.x && this._body[0].y === item.y;
+        return this._round(this._body[0].x, 0) === this._round(item.x, 0) &&
+            this._round(this._body[0].y, 0) === this._round(item.y, 0);
+    }
+
+    equip(item) {
+        if (item instanceof Teleport) this.powerUps[Teleport] = true;
+        if (item instanceof Phase) {
+            this.powerUps[Phase] = true;
+            this.setGlow(true);
+        }
+    }
+
+    setGlow(shouldGlow) {
+        if (shouldGlow && !this._isGlowing) {
+            this._borderColor = PHASE_BORDER_COLOR;
+            this._isGlowing = true;
+            // console.log(`[snake] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
+        }
+
+        if (!shouldGlow && this._isGlowing) {
+            this._borderColor = DEFAULT_BORDER_COLOR;
+            this._isGlowing = false;
+            // console.log(`[snake] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
+        }
     }
 
     didCollide(boardWidth, boardHeight, blockSize) {
@@ -56,8 +107,17 @@ export class Snake {
         // loop starts at index 4 because it is impossible for the first three parts to touch each other
         for (let i = 4; i < this._body.length; i++) {
             const didCollide = this._body[i].x === this._body[0].x && this._body[i].y === this._body[0].y;
-            if (didCollide) { return true; }
-            // TODO: if purple phase is available, decrement and continue game
+            if (didCollide) {
+                if (this.powerUps[Phase]) {
+                    // if phase powerup is available, decrement and continue game
+                    this.powerUps[Phase] = false;
+                    this.setGlow(false);
+
+                    // console.log('PHASE!');
+                    return false;
+                }
+                return true;
+            }
         }
 
         const hitLeftWall = this._body[0].x < 0;
@@ -65,8 +125,29 @@ export class Snake {
         const hitTopWall = this._body[0].y < 0;
         const hitBottomWall = this._body[0].y > boardHeight - blockSize;
 
-        return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
-        // TODO: if blue teleport is available, decrement, teleport, and continue game
+        const hitWall = hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
+
+        if (!hitWall) { return false; }
+
+        // if teleport power is available, decrement, teleport, and continue game
+        if (this.powerUps[Teleport]) {
+            this.powerUps[Teleport] = false;
+
+            if (hitLeftWall) {
+                this._body[0].x = boardWidth;
+            } else if (hitRightWall) {
+                this._body[0].x = -blockSize;
+            } else if (hitTopWall) {
+                this._body[0].y = boardHeight;
+            } else if (hitBottomWall) {
+                this._body[0].y = -blockSize;
+            }
+
+            // console.log('TELEPORT!');
+            return false;
+        }
+
+        return true;
     }
 
     changeDirectionByKey(keyPressed) {
@@ -127,5 +208,10 @@ export class Snake {
             newBeta: newBeta,
             newGamma: newGamma
         };
+    }
+
+    _round(value, precision = 1) {
+        var multiplier = Math.pow(10, precision || 0);
+        return Math.round(value * multiplier) / multiplier;
     }
 }
