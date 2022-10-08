@@ -10,6 +10,11 @@ export const UP_KEY = 'ArrowUp';
 export const DOWN_KEY = 'ArrowDown';
 
 export class Snake {
+    /**
+     * @param {number} boardWidth
+     * @param {number} boardHeight
+     * @param {number} blockSize
+     */
     constructor(boardWidth, boardHeight, blockSize) {
         this._body = [
             { x: boardWidth / 2, y: boardHeight / 2 },
@@ -33,22 +38,37 @@ export class Snake {
         this.powerUps = {[Teleport]: false, [Phase]: false};
     }
 
+    /**
+     * @returns {{ x: number; y: number; }[]}
+     */
     get body() {
         return this._body;
     }
 
+    /**
+     * @returns {string}
+     */
     get color() {
         return this._color;
     }
 
+    /**
+     * @returns {string}
+     */
     get borderColor() {
         return this._borderColor;
     }
 
+    /**
+     * @returns {boolean}
+     */
     get isGlowing() {
         return this._isGlowing;
     }
 
+    /**
+     * @returns {void}
+     */
     advanceHead() {
         const head = { x: this._body[0].x + this._dx, y: this._body[0].y + this._dy };
         this._body.unshift(head);
@@ -57,10 +77,16 @@ export class Snake {
         // console.log(`HEAD: ${head.x}, ${head.y}`);
     }
 
+    /**
+     * @returns {void}
+     */
     advanceTail() {
         this._body.pop();
     }
 
+    /**
+     * @returns {void}
+     */
     pause() {
         // save velocity at pause
         this._dxAtPause = this._dx;
@@ -69,17 +95,28 @@ export class Snake {
         this._dx = this._dy = 0;
     }
 
+    /**
+     * @returns {void}
+     */
     unpause() {
         // set velocity to state before pause
         this._dx = this._dxAtPause;
         this._dy = this._dyAtPause;
     }
 
+    /**
+     * @param {import('./item').Item} item
+     * @returns {boolean}
+     */
     didEat(item) {
         return this._round(this._body[0].x, 0) === this._round(item.x, 0) &&
             this._round(this._body[0].y, 0) === this._round(item.y, 0);
     }
 
+    /**
+     * @param {import('./item').Item} item
+     * @returns void
+     */
     equip(item) {
         if (item instanceof Teleport) this.powerUps[Teleport] = true;
         if (item instanceof Phase) {
@@ -88,6 +125,10 @@ export class Snake {
         }
     }
 
+    /**
+     * @param {boolean} shouldGlow
+     * @returns {void}
+     */
     setGlow(shouldGlow) {
         if (shouldGlow && !this._isGlowing) {
             this._borderColor = PHASE_BORDER_COLOR;
@@ -102,6 +143,12 @@ export class Snake {
         }
     }
 
+    /**
+     * @param {number} boardWidth
+     * @param {number} boardHeight
+     * @param {number} blockSize
+     * @returns {boolean}
+     */
     didCollide(boardWidth, boardHeight, blockSize) {
         // test whether the snake collided with itself
         // loop starts at index 4 because it is impossible for the first three parts to touch each other
@@ -150,6 +197,10 @@ export class Snake {
         return true;
     }
 
+    /**
+     * @param {string} keyPressed
+     * @returns {void}
+     */
     changeDirectionByKey(keyPressed) {
         if (this.isChangingDirection) { return; }
         this.isChangingDirection = true;
@@ -165,6 +216,14 @@ export class Snake {
         if (keyPressed === DOWN_KEY && !goingUp) { this._dx = 0; this._dy = this._blockSize; }
     }
 
+    /**
+     * @param {number} beta
+     * @param {number} gamma
+     * @param {number} lastBeta
+     * @param {number} lastGamma
+     * @param {number} sensitivity
+     * @returns {{ newBeta: number; newGamma: number; }}
+     */
     changeDirectionByMvmt(beta, gamma, lastBeta, lastGamma, sensitivity) {
         let newBeta = lastBeta;
         let newGamma = lastGamma;
@@ -210,6 +269,11 @@ export class Snake {
         };
     }
 
+    /**
+     * @param {number} value
+     * @param {number} precision
+     * @returns {number}
+     */
     _round(value, precision = 1) {
         var multiplier = Math.pow(10, precision || 0);
         return Math.round(value * multiplier) / multiplier;

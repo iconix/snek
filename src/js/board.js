@@ -13,12 +13,18 @@ const ENDGAME_FILTER = 'grayscale(0.8) blur(0.5px)';
 const MOTION_REQUEST_BUTTON_ID = 'motionRequest';
 
 export class Board {
+    /**
+     * @param {HTMLCanvasElement} canvas
+     * @param {HTMLElement} ctrlPanel
+     */
     constructor(canvas, ctrlPanel) {
         this._canvas = canvas;
         this._ctrlPanel = ctrlPanel;
 
         // 2d drawing context
-        this.ctx = this._canvas.getContext('2d');
+        if (!(this.ctx = this._canvas.getContext('2d'))) {
+            throw new Error('2d context not supported or canvas already initialized');
+        }
 
         this._boardSize = this._calculateBoardSize();
 
@@ -32,6 +38,7 @@ export class Board {
         this._height = canvas.height;
         this._blockSize = canvas.width / NUM_STEPS_ACROSS_CANVAS;
 
+        this._activeFilter = NO_FILTER;
         this._color = DEFAULT_BACKGROUND_COLOR;
         this._borderColor = DEFAULT_BORDER_COLOR;
         this._isGlowing = false;
@@ -45,62 +52,105 @@ export class Board {
         // })
     }
 
+    /**
+     * @returns {HTMLCanvasElement}
+     */
     get canvas() {
         return this._canvas;
     }
 
+    /**
+     * @returns {string}
+     */
     get color() {
         return this._color;
     }
 
+    /**
+     * @returns {string}
+     */
     get borderColor() {
         return this._borderColor;
     }
 
+    /**
+     * @returns {boolean}
+     */
     get isGlowing() {
         return this._isGlowing;
     }
 
+    /**
+     * @returns {string}
+     */
     get activeFilter() {
         return this._activeFilter;
     }
 
+    /**
+     * @returns {number}
+     */
     get width() {
         return this._width;
     }
 
+    /**
+     * @returns {number}
+     */
     get height() {
         return this._height;
     }
 
+    /**
+     * @returns {number}
+     */
     get blockSize() {
         return this._blockSize;
     }
 
+    /**
+     * @returns {number}
+     */
     get ratio() {
         return this._ratio;
     }
 
+    /**
+     * @returns {void}
+     */
     resetFilter() {
         this._activeFilter = NO_FILTER;
     }
 
+    /**
+     * @returns {void}
+     */
     setEndGameFilter() {
         this._activeFilter = ENDGAME_FILTER;
     }
 
+    /**
+     * @returns {void}
+     */
     setPauseGameFilter() {
         this._activeFilter = PAUSE_FILTER;
     }
 
+    /**
+     * @returns {void}
+     */
     enterFullScreen() {
         // switch to full screen
         this._canvas.requestFullscreen().then(function () {
             try {
                 // lock portrait orientation when going full screen
+                // @ts-ignore
                 screen.lockOrientationUniversal = screen.lockOrientation ||
+                    // @ts-ignore
                     screen.mozLockOrientation ||
+                    // @ts-ignore
                     screen.msLockOrientation;
+                // @ts-ignore
                 screen.lockOrientationUniversal('portrait-primary');
             } catch (e) {
                 // console.log(e);
@@ -108,10 +158,16 @@ export class Board {
         });
     }
 
+    /**
+     * @returns {void}
+     */
     exitFullScreen() {
         document.exitFullscreen();
     }
 
+    /**
+     * @returns {HTMLButtonElement}
+     */
     createMotionRequestBtn() {
         let btn = document.createElement('button');
         btn.innerHTML = 'Allow Motion Control';
@@ -121,11 +177,18 @@ export class Board {
         return btn;
     }
 
+    /**
+     * @returns {void}
+     */
     removeMotionRequestBtn() {
         let btn = document.getElementById(MOTION_REQUEST_BUTTON_ID);
         btn?.parentNode?.removeChild(btn);
     }
 
+    /**
+     * @param {boolean} shouldGlow
+     * @returns {void}
+     */
     setGlow(shouldGlow) {
         if (shouldGlow && !this._isGlowing) {
             // n.b., since canvas border doesn't show in fullscreen mode, we tint the background too
@@ -143,10 +206,18 @@ export class Board {
         }
     }
 
+    /**
+     * @returns {boolean}
+     */
     needsPermission() {
         return document.getElementById(MOTION_REQUEST_BUTTON_ID) !== null;
     }
 
+    /**
+     * @param {{ (this: HTMLCanvasElement, ev: TouchEvent): void; }} handleTouchStart
+     * @param {{ (this: HTMLCanvasElement, ev: TouchEvent): void; }} handleTouchEnd
+     * @returns {void}
+     */
     addTouchHandlers(handleTouchStart, handleTouchEnd) {
         this._handleTouchStart = handleTouchStart;
         this._handleTouchEnd = handleTouchEnd;
@@ -155,11 +226,17 @@ export class Board {
         this._canvas.addEventListener('touchend', handleTouchEnd);
     }
 
+    /**
+     * @returns {void}
+     */
     removeTouchHandlers() {
         if (this._handleTouchStart) this._canvas.removeEventListener('touchstart', this._handleTouchStart);
         if (this._handleTouchEnd) this._canvas.removeEventListener('touchend', this._handleTouchEnd);
     }
 
+    /**
+     * @returns {number}
+     */
     _calculateBoardSize() {
         // take the min(width, height), find closest number divisible by desired # of total steps across the canvas,
         // and use this as the width + height of the square canvas
@@ -170,6 +247,9 @@ export class Board {
         return quotient * NUM_STEPS_ACROSS_CANVAS - NUM_STEPS_ACROSS_CANVAS;
     }
 
+    /**
+     * @returns {void}
+     */
     _sizeCanvas() {
         this._canvas.style.width = this._boardSize + 'px';
         this._canvas.style.height = this._boardSize + 'px';
@@ -177,10 +257,11 @@ export class Board {
         this._canvas.height = this._canvas.width;
     }
 
+    /**
+     * @returns {void}
+     */
     _sizeControlPanel() {
         this._ctrlPanel.style.width = this._boardSize + 'px';
         this._ctrlPanel.style.height = CTRL_PANEL_HEIGHT + 'px';
-        this._ctrlPanel.width = this._boardSize * this._ratio;
-        this._ctrlPanel.height = CTRL_PANEL_HEIGHT * this._ratio;
     }
 }

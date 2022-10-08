@@ -43,30 +43,51 @@ export class Game {
         this._setupControls();
     }
 
+    /**
+     * @returns {Board}
+     */
     get board() {
         return this._board;
     }
 
+    /**
+     * @returns {Snake}
+     */
     get snake() {
         return this._snake;
     }
 
+    /**
+     * @returns {Item}
+     */
     get item() {
         return this._item;
     }
 
+    /**
+     * @returns {number}
+     */
     get speed() {
         return this._speed;
     }
 
+    /**
+     * @returns {number}
+     */
     get score() {
         return this._score;
     }
 
+    /**
+     * @returns {boolean}
+     */
     get paused() {
         return this._paused;
     }
 
+    /**
+     * @returns {void}
+     */
     run() {
         if (this._didEnd()) { this._end(); return; }
 
@@ -89,6 +110,9 @@ export class Game {
         if (!this._timeout) this._timeout = timeout;
     }
 
+    /**
+     * @returns {void}
+     */
     _advanceSnake() {
         this._snake.advanceHead();
 
@@ -101,8 +125,10 @@ export class Game {
 
             let itemClass = randomizeItem(this._score, this._snake.powerUps, true, false);
 
-            this._item = new itemClass(this._board, this._snake);
-            // console.log(`new ${this._item.fillColor.toUpperCase()} item`);
+            if (itemClass !== null) {
+                this._item = new itemClass(this._board, this._snake);
+                // console.log(`new ${this._item.fillColor.toUpperCase()} item`);
+            }
         } else {
             const foodIsUnstable = this._score >= FOOD_STABILITY_SCORE_THRESHOLD;
             // randomly regenerate item even if it wasn't eaten
@@ -121,12 +147,18 @@ export class Game {
         // console.log(`${this._item.type}: ${this._item.x}, ${this._item.y}`);
     }
 
+    /**
+     * @returns {boolean}
+     */
     _didEnd() {
         const didCollide = this._snake.didCollide(this._board.width, this._board.height, this._board.blockSize);
         this._board.setGlow(this._snake.powerUps[Teleport]);
         return didCollide;
     }
 
+    /**
+     * @returns {void}
+     */
     _end() {
         this._ended = true;
         this._board.setEndGameFilter();
@@ -152,8 +184,12 @@ export class Game {
         document.addEventListener('click', this._restart);
     }
 
+    /**
+     * @param {KeyboardEvent | MouseEvent | TouchEvent} event
+     * @returns {void}
+     */
     _restart(event) {
-        if (event.code === SPACE_KEY || event.type === 'click' || event.type === 'touchend') {
+        if ((event instanceof KeyboardEvent && event.code === SPACE_KEY) || event.type === 'click' || event.type === 'touchend') {
             document.removeEventListener('keydown', this._restart);
             document.removeEventListener('click', this._restart);
             this._board.removeTouchHandlers();
@@ -162,6 +198,9 @@ export class Game {
         }
     }
 
+    /**
+     * @returns {void}
+     */
     _togglePause() {
         this._paused = !this._paused;
 
@@ -176,6 +215,9 @@ export class Game {
         }
     }
 
+    /**
+     * @returns {void}
+     */
     _setupControls() {
         this._lastBeta = this._lastGamma = 0;
 
@@ -204,6 +246,7 @@ export class Game {
 
         if ( typeof(DeviceOrientationEvent) !== 'undefined' ) {
             // if browser (e.g., iOS safari) requires permission for deviceorientation, request it
+            // @ts-ignore
             if ( typeof(DeviceOrientationEvent.requestPermission) === 'function' ) {
                 let btn = this._board.createMotionRequestBtn();
                 btn.addEventListener('click', this._requestDeviceOrientation);
@@ -217,6 +260,10 @@ export class Game {
         }
     }
 
+    /**
+     * @param {KeyboardEvent} event
+     * @returns {void}
+     */
     _handleKeyInput(event) {
         const keyPressed = event.code;
 
@@ -237,11 +284,15 @@ export class Game {
         this._snake.changeDirectionByKey(keyPressed);
     }
 
+    /**
+     * @param {DeviceOrientationEvent} event
+     * @returns {void}
+     */
     _handleDeviceMvmt(event) {
         // forward (positive) to backward (negative) motion of the device
-        const beta = event.beta;
+        const beta = event.beta || 0;
         // right (positive) to left (negative) motion of the device
-        const gamma = event.gamma;
+        const gamma = event.gamma || 0;
 
         let betaDelta = this._lastBeta - beta;
         let gammaDelta = this._lastGamma - gamma;
@@ -261,23 +312,33 @@ export class Game {
             console.log('motion controls activated');
         }
 
-        let newMvmt = this._snake.changeDirectionByMvmt(event.beta, event.gamma, this._lastBeta, this._lastGamma, MOTION_SENSITIVITY);
+        let newMvmt = this._snake.changeDirectionByMvmt(beta, gamma, this._lastBeta, this._lastGamma, MOTION_SENSITIVITY);
 
         this._lastBeta = newMvmt.newBeta;
         this._lastGamma = newMvmt.newGamma;
     }
 
+    /**
+     * @returns {void}
+     */
     _handleVisibilityChange() {
         if (document.hidden && !this._paused) {
             this._togglePause();
         }
     }
 
+    /**
+     * @returns {void}
+     */
     _handleSwipeToFullScreen() {
         let downY = 0;
         let upY = 0;
 
         let thisGame = this;
+        /**
+         * @param {TouchEvent} ev
+         * @returns {void}
+         */
         function handleGesture(ev) {
             if (upY < downY && downY - upY > SWIPE_SENSITIVITY) {
                 // console.log(`swiped UP ${downY-upY}px`);
@@ -293,6 +354,10 @@ export class Game {
             }
         }
 
+        /**
+         * @param {TouchEvent} ev
+         * @returns {void}
+         */
         function handleTouchStart(ev) {
             ev.preventDefault();
 
@@ -305,6 +370,10 @@ export class Game {
             downY = firstTouch.screenY;
         }
 
+        /**
+         * @param {TouchEvent} ev
+         * @returns {void}
+         */
         function handleTouchEnd(ev) {
             ev.preventDefault();
 
@@ -322,9 +391,13 @@ export class Game {
         this._board.addTouchHandlers(handleTouchStart, handleTouchEnd);
     }
 
+    /**
+     * @returns {void}
+     */
     _requestDeviceOrientation() {
+        // @ts-ignore
         DeviceOrientationEvent.requestPermission()
-            .then( response => {
+            .then( (/** @type {string} @returns {void} */ response) => {
             if ( response === 'granted' ) {
                 this._enableMotionControl();
             }
@@ -334,6 +407,7 @@ export class Game {
     /**
      * disable keyboard, enable motion, remove button,
      * and un-pause game
+     * @return {void}
      */
     _enableMotionControl() {
         document.removeEventListener('keydown', this._handleKeyInput);
@@ -345,9 +419,20 @@ export class Game {
 
 // <!-- GAME EXECUTION HELPERS BELOW -->
 
+/**
+ * @returns {Game}
+ */
 export function initGame() {
-    const canvas = document.getElementById(CANVAS_ID);
-    const ctrl_panel = document.getElementById(CONTROL_PANEL_ID);
+    let canvas, ctrl_panel;
+    if (!(canvas = document.getElementById(CANVAS_ID))) {
+        throw new Error('canvas not found');
+    }
+    if (!(canvas instanceof HTMLCanvasElement)) {
+        throw new Error(`#${CANVAS_ID} element is not an HTML canvas`);
+    }
+    if (!(ctrl_panel = document.getElementById(CONTROL_PANEL_ID))) {
+        throw new Error('ctrl panel not found');
+    }
 
     let board = new Board(canvas, ctrl_panel);
     let snake = new Snake(board.height, board.height, board.blockSize);
@@ -358,6 +443,9 @@ export function initGame() {
     return game;
 }
 
+/**
+ * @returns {void}
+ */
 function restartGame() {
     let game = initGame();
     game.run();

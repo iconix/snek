@@ -1,6 +1,6 @@
 const EXCLAMATION_BTN_COLOR = 'darkkhaki';
 const GAME_TEXT_COLOR = 'gray';
-const PAUSE_BTN_COLOR = 'darkgreen';
+const PAUSE_BTN_COLOR = 'darkkhaki';
 
 const GAME_TEXT_FONT_FAMILY = '"Saira", serif';
 
@@ -12,7 +12,11 @@ const EXCLAMATION_ICON_CHAR_CODE = 0xF33A;
 /**
  * a fake contextmanager
  * for pixel sharpness https://stackoverflow.com/a/8696641
-**/
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ (): void; }} cb
+ * @returns {void}
+ */
 function withStraddle(ctx, cb) {
     const offset = 0.5;
 
@@ -26,6 +30,10 @@ function withStraddle(ctx, cb) {
     }
 }
 
+/**
+ * @param {import('./game').Game} game
+ * @returns {void}
+ */
 export function drawGame(game) {
     let board = game.board;
     let ctx = board.ctx;
@@ -69,8 +77,13 @@ export function drawGame(game) {
     });
 }
 
+/**
+ * @param {import('./snake').Snake} snake
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
 export function drawSnake(snake, board) {
-    snake.body.forEach(snakePart => drawSnakePart(
+    snake.body.forEach((/** @type {{ x: number; y: number; }} */ snakePart) => drawSnakePart(
         snakePart,
         snake.color,
         snake.borderColor,
@@ -79,6 +92,11 @@ export function drawSnake(snake, board) {
     ));
 }
 
+/**
+ * @param {import('./item').Item} item
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
 export function drawItem(item, board) {
     let ctx = board.ctx;
 
@@ -90,15 +108,24 @@ export function drawItem(item, board) {
     });
 }
 
+/**
+ * @param {number} score
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
 export function drawScore(score, board) {
     let ctx = board.ctx;
 
     ctx.font = `${GAME_TEXT_FONT_SIZE * board.ratio}px ${GAME_TEXT_FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillStyle = GAME_TEXT_COLOR;
-    ctx.fillText(score, board.canvas.width / 2, board.canvas.height / 2, board.canvas.width);
+    ctx.fillText(score.toString(), board.canvas.width / 2, board.canvas.height / 2, board.canvas.width);
 }
 
+/**
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
 export function drawGameEnd(board) {
     let ctx = board.ctx;
 
@@ -108,6 +135,14 @@ export function drawGameEnd(board) {
     ctx.fillText('DED', board.canvas.width / 2, board.canvas.height / 2, board.canvas.width);
 }
 
+/**
+ * @param {{ x: number; y: number; }} snakePart
+ * @param {string} color
+ * @param {string} borderColor
+ * @param {boolean} isGlowing
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
 function drawSnakePart(snakePart, color, borderColor, isGlowing, board) {
     let ctx = board.ctx;
 
