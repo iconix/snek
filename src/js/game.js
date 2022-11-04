@@ -1,4 +1,4 @@
-import { drawGame, drawGameEnd, drawItem, drawScore, drawSnake } from './canvas.js';
+import { drawGame, drawGameEnd, drawHighScore, drawItem, drawScore, drawSnake } from './canvas.js';
 import { Board } from './board.js';
 import { Food, Item, Phase, randomizeItem, Teleport } from './item.js';
 import { Snake, LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY } from './snake.js';
@@ -30,11 +30,12 @@ export class Game {
         this._item = item;
 
         this._score = 0;
+        this._highScore = parseInt(localStorage.getItem('highScore') || '0');
 
         this._paused = false;
         this._ended = false;
 
-        this._speed = speed;
+        this._speed = parseInt(localStorage.getItem('gameSpeed') || speed.toString());
 
         this._motionAvailable = null;
         this._lastBeta = 0;
@@ -79,6 +80,13 @@ export class Game {
     }
 
     /**
+     * @returns {number}
+     */
+    get highScore() {
+        return this._highScore;
+    }
+
+    /**
      * @returns {boolean}
      */
     get paused() {
@@ -96,6 +104,7 @@ export class Game {
 
             drawGame(this);
             drawScore(this._score, this._board);
+            drawHighScore(this._highScore, this._board);
             drawItem(this._item, this._board);
             if (!this._paused) {
                 //console.log(`paused: ${this._paused}. advancing...`);
@@ -168,6 +177,14 @@ export class Game {
         drawSnake(this._snake, this._board);
 
         drawGameEnd(this._board);
+
+        if (this.score > this._highScore) {
+            this._highScore = this._score;
+            localStorage.setItem('highScore', this._score.toString());
+            // TODO: (debug mode) allow clearing the high score
+        }
+
+        localStorage.setItem('gameSpeed', this._speed.toString());
 
         // bind `this` to game in event handler
         this._restart = this._restart.bind(this);
@@ -274,6 +291,7 @@ export class Game {
             // both keyboard and motion event listeners makes the game less responsive
             this._board.removeMotionRequestBtn();
             window.removeEventListener('deviceorientation', this._handleDeviceMvmt);
+            this._speed = GAME_SPEED__ARROW;
             this._motionAvailable = false;
         }
 

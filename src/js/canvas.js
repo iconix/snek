@@ -1,5 +1,6 @@
 const EXCLAMATION_BTN_COLOR = 'darkkhaki';
 const GAME_TEXT_COLOR = 'gray';
+const HIGH_SCORE_TEXT_COLOR = 'goldenrod';
 const PAUSE_BTN_COLOR = 'darkkhaki';
 
 const GAME_TEXT_FONT_FAMILY = '"Saira", serif';
@@ -72,7 +73,7 @@ export function drawGame(game) {
             ctx.fillStyle = useExclamation ? EXCLAMATION_BTN_COLOR : PAUSE_BTN_COLOR;
             ctx.fillText(String.fromCharCode(
                 useExclamation ? EXCLAMATION_ICON_CHAR_CODE : PAUSE_ICON_CHAR_CODE
-            ), 30 * board.ratio, 50 * board.ratio);
+            ), 30 * board.ratio, 50 * board.ratio, board.canvas.width);
         }
     });
 }
@@ -119,7 +120,21 @@ export function drawScore(score, board) {
     ctx.font = `${GAME_TEXT_FONT_SIZE * board.ratio}px ${GAME_TEXT_FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillStyle = GAME_TEXT_COLOR;
-    ctx.fillText(score.toString(), board.canvas.width / 2, board.canvas.height / 2, board.canvas.width);
+    ctx.fillText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) - (GAME_TEXT_FONT_SIZE / 2), board.canvas.width);
+}
+
+/**
+ * @param {number} score
+ * @param {import('./board').Board} board
+ * @returns {void}
+ */
+export function drawHighScore(score, board) {
+    let ctx = board.ctx;
+
+    ctx.font = `${GAME_TEXT_FONT_SIZE * board.ratio}px ${GAME_TEXT_FONT_FAMILY}`;
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = HIGH_SCORE_TEXT_COLOR;
+    ctx.strokeText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) + (GAME_TEXT_FONT_SIZE / 2), board.canvas.width);
 }
 
 /**
