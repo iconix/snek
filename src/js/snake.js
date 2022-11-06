@@ -168,9 +168,9 @@ export class Snake {
         }
 
         const hitLeftWall = this._body[0].x < 0;
-        const hitRightWall = this._body[0].x > boardWidth - blockSize;
+        const hitRightWall = this._body[0].x > boardWidth;
         const hitTopWall = this._body[0].y < 0;
-        const hitBottomWall = this._body[0].y > boardHeight - blockSize;
+        const hitBottomWall = this._body[0].y > boardHeight;
 
         const hitWall = hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
 
@@ -181,13 +181,13 @@ export class Snake {
             this.powerUps[Teleport] = false;
 
             if (hitLeftWall) {
-                this._body[0].x = boardWidth;
+                this._body[0].x = boardWidth - blockSize;
             } else if (hitRightWall) {
-                this._body[0].x = -blockSize;
+                this._body[0].x = 0;
             } else if (hitTopWall) {
-                this._body[0].y = boardHeight;
+                this._body[0].y = boardHeight - blockSize;
             } else if (hitBottomWall) {
-                this._body[0].y = -blockSize;
+                this._body[0].y = 0;
             }
 
             // console.log('TELEPORT!');

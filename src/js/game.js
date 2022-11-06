@@ -36,6 +36,7 @@ export class Game {
         this._ended = false;
 
         this._speed = parseInt(localStorage.getItem('gameSpeed') || speed.toString());
+        this._lastIntervalTimestamp = null;
 
         this._motionAvailable = null;
         this._lastBeta = 0;
@@ -94,12 +95,16 @@ export class Game {
     }
 
     /**
+     * @param {DOMHighResTimeStamp} now
      * @returns {void}
      */
-    run() {
-        if (this._didEnd()) { this._end(); return; }
+    run(now) {
+        if (!this._lastIntervalTimestamp || now - this._lastIntervalTimestamp >= this._speed) {
+            // update the timestamp to right now
+            this._lastIntervalTimestamp = now;
 
-        let timeout = setTimeout(() => {
+            if (this._didEnd()) { this._end(); return; }
+
             this._snake.isChangingDirection = false;
 
             drawGame(this);
@@ -111,12 +116,10 @@ export class Game {
                 this._advanceSnake();
             }
             drawSnake(this._snake, this._board);
+        }
 
-            // run game loop again
-            this.run();
-        }, this._speed);
-
-        if (!this._timeout) this._timeout = timeout;
+        // run game loop again
+        requestAnimationFrame((t) => this.run(t));
     }
 
     /**
@@ -181,7 +184,7 @@ export class Game {
         if (this.score > this._highScore) {
             this._highScore = this._score;
             localStorage.setItem('highScore', this._score.toString());
-            // TODO: (debug mode) allow clearing the high score
+            // TODO: add clearing the high score to control panel
         }
 
         localStorage.setItem('gameSpeed', this._speed.toString());
@@ -466,5 +469,5 @@ export function initGame() {
  */
 function restartGame() {
     let game = initGame();
-    game.run();
+    requestAnimationFrame((t) => game.run(t));
 }

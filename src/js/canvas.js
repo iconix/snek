@@ -120,7 +120,7 @@ export function drawScore(score, board) {
     ctx.font = `${GAME_TEXT_FONT_SIZE * board.ratio}px ${GAME_TEXT_FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillStyle = GAME_TEXT_COLOR;
-    ctx.fillText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) - (GAME_TEXT_FONT_SIZE / 2), board.canvas.width);
+    ctx.fillText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) - ((GAME_TEXT_FONT_SIZE / 2) * board.ratio), board.canvas.width);
 }
 
 /**
@@ -134,7 +134,7 @@ export function drawHighScore(score, board) {
     ctx.font = `${GAME_TEXT_FONT_SIZE * board.ratio}px ${GAME_TEXT_FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.strokeStyle = HIGH_SCORE_TEXT_COLOR;
-    ctx.strokeText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) + (GAME_TEXT_FONT_SIZE / 2), board.canvas.width);
+    ctx.strokeText(score.toString(), board.canvas.width / 2, (board.canvas.height / 2) + ((GAME_TEXT_FONT_SIZE / 2) * board.ratio), board.canvas.width);
 }
 
 /**
