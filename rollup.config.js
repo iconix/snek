@@ -5,7 +5,7 @@ import pkg from './package.json';
 
 // Configs
 var configs = {
-	name: 'BuildToolsCookbook',
+	name: 'snek',
 	files: ['main.js'],
 	formats: ['es'],
 	default: 'es',
