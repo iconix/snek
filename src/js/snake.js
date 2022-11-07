@@ -109,6 +109,8 @@ export class Snake {
      * @returns {boolean}
      */
     didEat(item) {
+        // TODO: there's a pixel offset bug somewhere that forces this rounding.
+        // bug also creates a visual bug in teleporting
         return this._round(this._body[0].x, 0) === this._round(item.x, 0) &&
             this._round(this._body[0].y, 0) === this._round(item.y, 0);
     }

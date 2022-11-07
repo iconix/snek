@@ -214,7 +214,7 @@ export class Game {
             document.removeEventListener('click', this._restart);
             this._board.removeTouchHandlers();
 
-            restartGame();
+            runGame();
         }
     }
 
@@ -441,9 +441,17 @@ export class Game {
 // <!-- GAME EXECUTION HELPERS BELOW -->
 
 /**
+ * @returns {void}
+ */
+ export function runGame() {
+    let game = initGame();
+    requestAnimationFrame((t) => game.run(t));
+}
+
+/**
  * @returns {Game}
  */
-export function initGame() {
+function initGame() {
     let canvas, ctrl_panel;
     if (!(canvas = document.getElementById(CANVAS_ID))) {
         throw new Error('canvas not found');
@@ -462,12 +470,4 @@ export function initGame() {
     let game = new Game(board, snake, food, GAME_SPEED__ARROW);
 
     return game;
-}
-
-/**
- * @returns {void}
- */
-function restartGame() {
-    let game = initGame();
-    requestAnimationFrame((t) => game.run(t));
 }

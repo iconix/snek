@@ -1,4 +1,3 @@
-import { initGame } from './game.js'
+import { runGame } from './game.js'
 
-let game = initGame();
-game.run();
+runGame();
