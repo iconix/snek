@@ -1,15 +1,15 @@
 {
-    "name": "build-tools-boilerplate",
-    "version": "2.0.0",
-    "description": "Simple recipes for building and compiling with the CLI.",
+    "name": "snek",
+    "version": "1.5.0",
+    "description": "a snake game with HTML5 canvas and vanilla JS.",
     "author": {
         "name": "iconix",
-        "url": "https://snake-cdxejlircg.now.sh/"
+        "url": "https://snek-62de1.web.app"
     },
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "http://github.com/cferdinandi/build-tools-boilerplate"
+        "url": "https://github.com/iconix/snek"
     },
     "scripts": {
         "clean": "recursive-delete dist",
