@@ -1,3 +1,3 @@
-import { runGame } from './game.js'
+import { runGame } from './game/game';
 
 runGame();
