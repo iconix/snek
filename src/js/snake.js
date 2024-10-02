@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from './config';
-import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP, getDirection, isOppositeDirection, normalizeDirection } from './game/direction';
+import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP, getDirection, isOppositeDirection, normalizeDirection } from './direction';
 import { PHASE_CLASSNAME, Phase, TELEPORT_CLASSNAME, Teleport } from './item';
 
 const { SNAKE } = GAME_CONFIG;
@@ -289,7 +289,7 @@ export class Snake {
 
     /**
      * Gets the current direction of snek.
-     * @returns {import('./game/direction').Direction} current direction
+     * @returns {import('./direction').Direction} current direction
      * @private
      */
     _getCurrentDirection() {
@@ -299,7 +299,7 @@ export class Snake {
 
     /**
      * Sets a new direction for snek.
-     * @param {import('./game/direction').Direction} direction - new direction
+     * @param {import('./direction').Direction} direction - new direction
      * @private
      */
     _setNewDirection(direction) {

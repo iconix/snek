@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from '../config';
-import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from './direction';
+import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from '../direction';
 
 const { INPUT } = GAME_CONFIG;
 

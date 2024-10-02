@@ -7,7 +7,7 @@ import {
     getDirection,
     isOppositeDirection,
     normalizeDirection
-} from '../../src/js/game/direction';
+} from '../src/js/direction';
 
 describe('Direction Module', () => {
     describe('getDirection function', () => {

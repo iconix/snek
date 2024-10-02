@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 
 import { GAME_CONFIG } from '../src/js/config';
-import { DIRECTION_LEFT, DIRECTION_UP } from '../src/js/game/direction';
+import { DIRECTION_LEFT, DIRECTION_UP } from '../src/js/direction';
 import { PHASE_CLASSNAME, Phase, TELEPORT_CLASSNAME, Teleport } from '../src/js/item';
 import { Snake } from '../src/js/snake';
 

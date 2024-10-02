@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { GAME_CONFIG } from '../../src/js/config';
-import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from '../../src/js/game/direction';
+import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from '../../src/js/direction';
 import { InputHandler } from '../../src/js/game/input';
 import { MockBoard } from '../__mocks__/mockBoard';
 import { MockGame } from '../__mocks__/mockGame';
