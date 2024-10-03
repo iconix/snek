@@ -1,6 +1,6 @@
 # snek: a snake game with HTML5 canvas and vanilla JS
 
-Learning HTML5 canvas for making 2D games.
+learning HTML5 canvas for making 2D games.
 
 ## working demo (as of nov 2022): https://snek-62de1.web.app
 
@@ -10,7 +10,7 @@ Learning HTML5 canvas for making 2D games.
 
 ## architecture
 
-For a detailed overview of game architecture, please refer to [ARCHITECTURE.md](./ARCHITECTURE.md).
+for a detailed overview of game architecture, please refer to [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## development
 

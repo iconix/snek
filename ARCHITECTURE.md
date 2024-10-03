@@ -1,8 +1,8 @@
-# Game Architecture
+# Snek Architecture
 
 ## Overview
 
-This document outlines the architecture of this `snek` game implementation. The game is built using HTML5 Canvas and JavaScript and follows an object-oriented approach. It is designed to be modular, extensible, and easy to maintain.
+This document outlines the architecture of this `snek` game implementation. The game is built using HTML5 Canvas and vanilla JavaScript and follows an object-oriented approach. It is designed to be modular, extensible, and easy to maintain.
 
 ## Main Components
 
@@ -150,7 +150,3 @@ The modular design allows for easy extensions:
 - Additional power-ups can be implemented in the `Snake` class.
 - New game modes can be created by extending the `Game` class or modifying game logic.
 - Visual themes can be adjusted by modifying the `Board` class and related rendering functions.
-
-## Conclusion
-
-This architecture provides a solid foundation for the Snake game, with clear separation of concerns and modular components. It allows for easy maintenance and future enhancements while keeping the codebase organized and manageable.
