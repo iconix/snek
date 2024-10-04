@@ -25,8 +25,8 @@
         "watch": "npm-run-all -p build watch-js watch-css watch-html",
         "server-start": "browser-sync start --files 'dist' --server --no-open",
         "server": "npm-run-all -p watch server-start",
-        "test": "cross-env NODE_OPTIONS='--experimental-vm-modules --no-warnings' jest",
-        "test:debug": "cross-env NODE_OPTIONS='--experimental-vm-modules --no-warnings --inspect-brk' jest --runInBand"
+        "test": "cross-env NODE_OPTIONS='--experimental-vm-modules' NODE_NO_WARNINGS=1 jest",
+        "test:debug": "cross-env NODE_OPTIONS='--experimental-vm-modules --inspect-brk' NODE_NO_WARNINGS=1 jest --runInBand"
     },
     "jest": {
         "testEnvironment": "jsdom",
