@@ -53,7 +53,6 @@ export class InputHandler {
         }
         document[action]('keydown', this._boundMethods.handleRestart);
         document[action]('click', this._boundMethods.handleRestart);
-        document[action]('touchend', this._boundMethods.handleRestart);
     }
 
     /**
@@ -125,7 +124,6 @@ export class InputHandler {
     _manageFullscreenControl(shouldAdd) {
         const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
         document[action]('dblclick', this._boundMethods.enterFullScreen);
-        // this._manageTouchControls(shouldAdd); TODO: needed?
     }
 
     /**
@@ -218,13 +216,13 @@ export class InputHandler {
         // used to determine when to switch from keyboard to motion controls
         if (this._motionAvailable === null && this._isSignificantMotion(orientationChange)) {
             this._enableMotionControl();
+        }
 
-            const direction = this._getDirectionFromOrientation(orientationChange);
-            if (direction) {
-                let command = new MoveCommand(direction);
-                command.execute(this._game);
-                this._deviceOrientation = currentOrientation;
-            }
+        const direction = this._getDirectionFromOrientation(orientationChange);
+        if (direction) {
+            let command = new MoveCommand(direction);
+            command.execute(this._game);
+            this._deviceOrientation = currentOrientation;
         }
     }
 
@@ -314,6 +312,21 @@ export class InputHandler {
         window.removeEventListener('deviceorientation', this._handleDeviceMovement);
         this._game.state.setSpeed(INPUT.GAME_SPEED__ARROW);
         this._motionAvailable = false;
+    }
+
+    /**
+     * Logs debug information about the current state of motion controls.
+     * This method is intended to be called periodically (e.g., in the game loop)
+     * to provide ongoing insight into the motion control system's state.
+     * @private
+     */
+    _debugMotionControl() {
+        console.log('motion control debug info', {
+            motionAvailable: this._motionAvailable,
+            deviceOrientation: this._deviceOrientation,
+            isChangingDirection: this._game.snake._isChangingDirection,
+            snakeDirection: this._game.snake.getCurrentDirection()
+        });
     }
 
     /**

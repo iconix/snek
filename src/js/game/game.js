@@ -104,6 +104,8 @@ export class Game {
         if (this.state.ended) return;
         if (!this.state.paused) {
             this._advanceSnake();
+            // TODO: add to control panel
+            // this.input._debugMotionControl();
         }
     }
 
@@ -197,7 +199,6 @@ export class Game {
         this.state.updateHighScore();
 
         this.input.manageGameControls(false);
-        // always allow restart with space bar
         this.input.manageRestartControls(true);
 
         console.log(`game over - final score: ${this.state.score}`);
