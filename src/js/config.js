@@ -41,10 +41,11 @@ export const GAME_CONFIG = {
     },
 
     INPUT: {
-        GAME_SPEED__ARROW: 100,     // milliseconds
-        GAME_SPEED__MOTION: 125,    // milliseconds, slow down game since harder with motion controls
-        SWIPE_SENSITIVITY: 10,      // delta of pixels needed to consider touch mvmt a 'swipe'
-        MOTION_SENSITIVITY: 15,     // degree of motion needed to consider a device mvmt as intentional
+        GAME_SPEED_MS__ARROW: 100,
+        GAME_SPEED_MS__MOTION: 125,     // slow down game since harder with motion controls
+        SWIPE_SENSITIVITY: 10,          // delta of pixels needed to consider touch mvmt a 'swipe'
+        MOTION_SENSITIVITY: 15,         // degree of motion needed to consider a device mvmt as intentional
+        MOTION_THROTTLE_TIME_MS: 100,   // min time between motion control updates to prevent over-sensitivity
     },
 
     CANVAS: {

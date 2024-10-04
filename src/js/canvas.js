@@ -60,15 +60,18 @@ export function drawGame(game) {
         if (game.state.paused) {
             let useExclamation = board.needsPermission();
 
+            const iconSize = CANVAS.GAME_TEXT_FONT_SIZE * board.ratio;
+            const iconPadding = 5 * board.ratio;
+
             // since filters don't work on iOS safari, we need another visual aid
             // add pause button icon https://icons.getbootstrap.com/icons/pause-btn-fill/
             // or exclamation triangle icon if we still need permissions
             // https://icons.getbootstrap.com/icons/exclamation-triangle-fill/
-            ctx.font = (CANVAS.GAME_TEXT_FONT_SIZE * board.ratio) + 'px "bootstrap-icons"';
+            ctx.font = `${iconSize}px "bootstrap-icons"`;
             ctx.fillStyle = useExclamation ? CANVAS.EXCLAMATION_BTN_COLOR : CANVAS.PAUSE_BTN_COLOR;
             ctx.fillText(String.fromCharCode(
                 useExclamation ? EXCLAMATION_ICON_CHAR_CODE : PAUSE_ICON_CHAR_CODE
-            ), 30 * board.ratio, 50 * board.ratio, board.canvas.width);
+            ), iconPadding, iconSize + iconPadding, board.canvas.width);
         }
     });
 

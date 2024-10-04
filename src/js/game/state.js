@@ -15,7 +15,7 @@ export class GameState {
         // values
         this._score = 0;
         this._highScore = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, 0);
-        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, INPUT.GAME_SPEED__ARROW);
+        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, INPUT.GAME_SPEED_MS__ARROW);
     }
 
     /**

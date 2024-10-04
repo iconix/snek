@@ -23,6 +23,7 @@ export class InputHandler {
             beta: 0,  // rotation around x-axis (-180 to 180)
             gamma: 0  // rotation around y-axis (-90 to 90)
         };
+        this._lastOrientationUpdate = 0;
         this._touchStart = { x: 0, y: 0 };
         this._touchEnd = { x: 0, y: 0 };
         this._boundMethods = this._bindMethods();
@@ -202,9 +203,16 @@ export class InputHandler {
      * @private
      */
     _handleDeviceMovement(event) {
+        const now = Date.now();
+
         const currentOrientation = {
             beta: event.beta || 0,
             gamma: event.gamma || 0
+        }
+
+        // ensure we're not updating too frequently / causing jerkiness
+        if (now - this._lastOrientationUpdate < INPUT.MOTION_THROTTLE_TIME_MS) {
+            return;
         }
 
         const orientationChange = {
@@ -222,6 +230,7 @@ export class InputHandler {
         if (direction) {
             let command = new MoveCommand(direction);
             command.execute(this._game);
+            this._lastOrientationUpdate = now;
             this._deviceOrientation = currentOrientation;
         }
     }
@@ -297,7 +306,7 @@ export class InputHandler {
         window.addEventListener('deviceorientation', this._boundMethods.handleDeviceMovement);
 
         this._game.board.removeMotionRequestBtn();
-        this._game.state.setSpeed(INPUT.GAME_SPEED__MOTION);
+        this._game.state.setSpeed(INPUT.GAME_SPEED_MS__MOTION);
         this._motionAvailable = true;
 
         console.log('motion controls activated');
@@ -310,7 +319,7 @@ export class InputHandler {
     _disableMotionControl() {
         this._game.board.removeMotionRequestBtn();
         window.removeEventListener('deviceorientation', this._handleDeviceMovement);
-        this._game.state.setSpeed(INPUT.GAME_SPEED__ARROW);
+        this._game.state.setSpeed(INPUT.GAME_SPEED_MS__ARROW);
         this._motionAvailable = false;
     }
 
