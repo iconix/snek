@@ -38,6 +38,7 @@ for a detailed overview of game architecture, please refer to [ARCHITECTURE.md](
 ```
 
 ## wishlist
+- [ ] reimplement in phaser, just to compare and contrast
 - [ ] motion controls 'could be better'
 - [ ] turn on firebase cloud logging and analytics
 - [ ] debug mode: extra logging, output debug info to screen (like canvas dimensions, etc.)
