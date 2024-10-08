@@ -1,5 +1,15 @@
 # Snek Architecture
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Main Components](#main-components)
+3. [Component Interactions](#component-interactions)
+4. [Data Flow](#data-flow)
+5. [Extensibility](#extensibility)
+6. [Build System](#build-system)
+7. [Deployment System](#deployment-system)
+
 ## Overview
 
 This document outlines the architecture of this `snek` game implementation. The game is built using HTML5 Canvas and vanilla JavaScript and follows an object-oriented approach. It is designed to be modular, extensible, and easy to maintain.
