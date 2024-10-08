@@ -1,21 +1,16 @@
-const CTRL_PANEL_HEIGHT = 50;  // pixels
-const NUM_STEPS_ACROSS_CANVAS = 30;
+import { GAME_CONFIG } from './config';
 
-const DEFAULT_BACKGROUND_COLOR = 'white';
-const DEFAULT_BORDER_COLOR = 'darkgreen';
-const TELEPORT_BORDER_COLOR = 'blue';
-const TELEPORT_BACKGROUND_COLOR = '#e2f1fa';  // a light blue
-
-const NO_FILTER = 'none';
-const PAUSE_FILTER = 'contrast(1.4) sepia(1)';
-const ENDGAME_FILTER = 'grayscale(0.8) blur(0.5px)';
+const { BOARD } = GAME_CONFIG;
 
 const MOTION_REQUEST_BUTTON_ID = 'motionRequest';
 
+/**
+ * Represents the game board.
+ */
 export class Board {
     /**
-     * @param {HTMLCanvasElement} canvas
-     * @param {HTMLElement} ctrlPanel
+     * @param {HTMLCanvasElement} canvas - canvas element for the game
+     * @param {HTMLElement | null} ctrlPanel - control panel element
      */
     constructor(canvas, ctrlPanel) {
         this._canvas = canvas;
@@ -36,11 +31,11 @@ export class Board {
 
         this._width = canvas.width;
         this._height = canvas.height;
-        this._blockSize = canvas.width / NUM_STEPS_ACROSS_CANVAS;
+        this._blockSize = canvas.width / BOARD.NUM_STEPS_ACROSS_CANVAS;
 
-        this._activeFilter = NO_FILTER;
-        this._color = DEFAULT_BACKGROUND_COLOR;
-        this._borderColor = DEFAULT_BORDER_COLOR;
+        this._activeFilter = BOARD.FILTERS.NONE;
+        this._color = BOARD.DEFAULT_BACKGROUND_COLOR;
+        this._borderColor = BOARD.DEFAULT_BORDER_COLOR;
         this._isGlowing = false;
 
         this.resetFilter();
@@ -116,28 +111,28 @@ export class Board {
     }
 
     /**
-     * @returns {void}
+     * Resets the board filter to default.
      */
     resetFilter() {
-        this._activeFilter = NO_FILTER;
+        this._activeFilter = BOARD.FILTERS.NONE;
     }
 
     /**
-     * @returns {void}
+     * Sets the board filter for the end game state.
      */
     setEndGameFilter() {
-        this._activeFilter = ENDGAME_FILTER;
+        this._activeFilter = BOARD.FILTERS.ENDGAME;
     }
 
     /**
-     * @returns {void}
+     * Sets the board filter for the paused game state.
      */
     setPauseGameFilter() {
-        this._activeFilter = PAUSE_FILTER;
+        this._activeFilter = BOARD.FILTERS.PAUSE;
     }
 
     /**
-     * @returns {void}
+     * Enters fullscreen mode.
      */
     enterFullScreen() {
         // switch to full screen
@@ -159,16 +154,23 @@ export class Board {
     }
 
     /**
-     * @returns {void}
+     * Exits fullscreen mode.
      */
     exitFullScreen() {
         document.exitFullscreen();
     }
 
     /**
-     * @returns {HTMLButtonElement}
+     * Creates a button in control panel to request motion control permission.
+     * If the button already exists, it returns the existing button.
+     * @returns {HTMLButtonElement | null} created button, or null if control panel does not exist
      */
-    createMotionRequestBtn() {
+    createMotionRequestButton() {
+        if (!this._ctrlPanel) return null;
+
+        let existingBtn = this.getMotionRequestButton();
+        if (existingBtn) return existingBtn;
+
         let btn = document.createElement('button');
         btn.innerHTML = 'Allow Motion Control';
         btn.setAttribute('id', MOTION_REQUEST_BUTTON_ID);
@@ -178,77 +180,73 @@ export class Board {
     }
 
     /**
-     * @returns {void}
+     * Gets the motion control request button.
+     * @returns {HTMLButtonElement | null} motion request button if it exists; otherwise null
      */
-    removeMotionRequestBtn() {
-        let btn = document.getElementById(MOTION_REQUEST_BUTTON_ID);
+    getMotionRequestButton() {
+        const element = document.getElementById(MOTION_REQUEST_BUTTON_ID);
+        return element instanceof HTMLButtonElement ? element : null;
+    }
+
+    /**
+     * Removes the motion control request button.
+     */
+    removeMotionRequestButton() {
+        let btn = this.getMotionRequestButton();
         btn?.parentNode?.removeChild(btn);
     }
 
     /**
-     * @param {boolean} shouldGlow
-     * @returns {void}
+     * Sets the glow effect on the board.
+     * @param {boolean} shouldGlow - whether the board should glow
      */
     setGlow(shouldGlow) {
-        if (shouldGlow && !this._isGlowing) {
-            // n.b., since canvas border doesn't show in fullscreen mode, we tint the background too
-            this._color = TELEPORT_BACKGROUND_COLOR;
-            this._borderColor = TELEPORT_BORDER_COLOR;
-            this._isGlowing = true;
-            // console.log(`[board] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
+        if (shouldGlow === this.isGlowing) return;
+
+        this._isGlowing = shouldGlow;
+
+        if (shouldGlow) {
+            // note: since canvas border doesn't show in fullscreen mode, we tint the background too
+            this._color = BOARD.TELEPORT_BACKGROUND_COLOR;
+            this._borderColor = BOARD.TELEPORT_BORDER_COLOR;
+        } else {
+            this._color = BOARD.DEFAULT_BACKGROUND_COLOR;
+            this._borderColor = BOARD.DEFAULT_BORDER_COLOR;
         }
 
-        if (!shouldGlow && this._isGlowing) {
-            this._color = DEFAULT_BACKGROUND_COLOR;
-            this._borderColor = DEFAULT_BORDER_COLOR;
-            this._isGlowing = false;
-            // console.log(`[board] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
-        }
+        // console.log(`[board] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
     }
 
     /**
-     * @returns {boolean}
+     * Checks if the game needs permission for motion control.
+     * @returns {boolean} true if permission is needed; false otherwise
      */
     needsPermission() {
         return document.getElementById(MOTION_REQUEST_BUTTON_ID) !== null;
     }
 
     /**
-     * @param {{ (this: HTMLCanvasElement, ev: TouchEvent): void; }} handleTouchStart
-     * @param {{ (this: HTMLCanvasElement, ev: TouchEvent): void; }} handleTouchEnd
-     * @returns {void}
-     */
-    addTouchHandlers(handleTouchStart, handleTouchEnd) {
-        this._handleTouchStart = handleTouchStart;
-        this._handleTouchEnd = handleTouchEnd;
-
-        this._canvas.addEventListener('touchstart', handleTouchStart);
-        this._canvas.addEventListener('touchend', handleTouchEnd);
-    }
-
-    /**
-     * @returns {void}
-     */
-    removeTouchHandlers() {
-        if (this._handleTouchStart) this._canvas.removeEventListener('touchstart', this._handleTouchStart);
-        if (this._handleTouchEnd) this._canvas.removeEventListener('touchend', this._handleTouchEnd);
-    }
-
-    /**
-     * @returns {number}
+     * Calculates the size of the game board.
+     * @returns {number} The calculated board size.
+     * @private
      */
     _calculateBoardSize() {
-        // take the min(width, height), find closest number divisible by desired # of total steps across the canvas,
-        // and use this as the width + height of the square canvas
-        let rawSize = Math.min(window.innerWidth, window.innerHeight) - CTRL_PANEL_HEIGHT;
-        let quotient = rawSize / NUM_STEPS_ACROSS_CANVAS;
+        // calculate a square board size based on window dimensions and total # of steps across the canvas
+        const availableSpace = Math.min(window.innerWidth, window.innerHeight) - BOARD.CTRL_PANEL_HEIGHT;
+        const gridBlockSize = availableSpace / BOARD.NUM_STEPS_ACROSS_CANVAS;  // find closest number divisible by steps
+        const boardSize = Math.floor(gridBlockSize) * BOARD.NUM_STEPS_ACROSS_CANVAS - BOARD.MARGIN_SIZE;
 
-        // subtracting NUM_STEPS_ACROSS_CANVAS below to allow some whitespace around the game canvas
-        return quotient * NUM_STEPS_ACROSS_CANVAS - NUM_STEPS_ACROSS_CANVAS;
+        // TODO: could implement like below instead - if willing to implement resizing
+        // const maxWidth = window.innerWidth - MARGIN_SIZE;
+        // const maxHeight = window.innerHeight - CTRL_PANEL_HEIGHT - MARGIN_SIZE;
+        // const boardSize = Math.min(maxWidth, maxHeight);
+
+        return boardSize;
     }
 
     /**
-     * @returns {void}
+     * Sets the size of the canvas.
+     * @private
      */
     _sizeCanvas() {
         this._canvas.style.width = this._boardSize + 'px';
@@ -258,10 +256,12 @@ export class Board {
     }
 
     /**
-     * @returns {void}
+     * Sets the size of the control panel.
+     * @private
      */
     _sizeControlPanel() {
+        if (!this._ctrlPanel) return;
         this._ctrlPanel.style.width = this._boardSize + 'px';
-        this._ctrlPanel.style.height = CTRL_PANEL_HEIGHT + 'px';
+        this._ctrlPanel.style.height = BOARD.CTRL_PANEL_HEIGHT + 'px';
     }
 }

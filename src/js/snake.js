@@ -1,91 +1,162 @@
-import { Phase, Teleport } from './item';
+import { GAME_CONFIG } from './config';
+import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP, getDirection, isOppositeDirection, normalizeDirection } from './direction';
+import { PHASE_CLASSNAME, Phase, TELEPORT_CLASSNAME, Teleport } from './item';
 
-const DEFAULT_BORDER_COLOR = 'darkgreen';
-const DEFAULT_COLOR = 'lightgreen';
-const PHASE_BORDER_COLOR = 'violet';
+const { SNAKE } = GAME_CONFIG;
 
-export const LEFT_KEY = 'ArrowLeft';
-export const RIGHT_KEY = 'ArrowRight';
-export const UP_KEY = 'ArrowUp';
-export const DOWN_KEY = 'ArrowDown';
-
+/**
+ * Represents snek in the game.
+ */
 export class Snake {
+
     /**
-     * @param {number} boardWidth
-     * @param {number} boardHeight
-     * @param {number} blockSize
+     * @param {number} boardWidth - width of the game board
+     * @param {number} boardHeight - height of the game board
+     * @param {number} blockSize - size of each block on the board
      */
     constructor(boardWidth, boardHeight, blockSize) {
-        this._body = [
-            { x: boardWidth / 2, y: boardHeight / 2 },
-            { x: boardWidth / 2 - blockSize, y: boardHeight / 2 },
-            { x: boardWidth / 2 - blockSize * 2, y: boardHeight / 2 },
-            { x: boardWidth / 2 - blockSize * 3, y: boardHeight / 2 },
-            { x: boardWidth / 2 - blockSize * 4, y: boardHeight / 2 },
-        ];
-
         this._blockSize = blockSize;
+
+        // calculate initial position (center of the board)
+        const centerX = Math.floor(boardWidth / (2 * blockSize)) * blockSize;
+        const centerY = Math.floor(boardHeight / (2 * blockSize)) * blockSize;
+
+        this._body = this._createBody(centerX, centerY, SNAKE.INITIAL_LENGTH);
 
         // set initial velocity
         this._dx = this._dxAtPause = blockSize;
         this._dy = this._dyAtPause = 0;
+        this._isChangingDirection = false;
 
-        this._color = DEFAULT_COLOR;
-        this._borderColor = DEFAULT_BORDER_COLOR;
+        // set initial appearance
+        this._color = SNAKE.DEFAULT_COLOR;
+        this._borderColor = SNAKE.DEFAULT_BORDER_COLOR;
         this._isGlowing = false;
 
-        this.isChangingDirection = false;
-        this.powerUps = {[Teleport]: false, [Phase]: false};
+        this.powerUps = { [TELEPORT_CLASSNAME]: false, [PHASE_CLASSNAME]: false };
+
+        this._directionMap = new Map([
+            [`${blockSize},0`, DIRECTION_RIGHT],
+            [`${-blockSize},0`, DIRECTION_LEFT],
+            [`0,${-blockSize}`, DIRECTION_UP],
+            [`0,${blockSize}`, DIRECTION_DOWN]
+        ]);
     }
 
     /**
-     * @returns {{ x: number; y: number; }[]}
+     * Creates the body of snek.
+     * @param {number} centerX - x-coordinate of the center of the board
+     * @param {number} centerY - y-coordinate of the center of the board
+     * @param {number} length - number of parts composing snek body
+     * @returns {{ x: number; y: number; }[]} created snek body
+     * @private
      */
-    get body() {
-        return this._body;
+    _createBody(centerX, centerY, length) {
+        const body = [];
+        for (let i = 0; i < length; i++) {
+            body.push({
+                x: centerX - i * this._blockSize,
+                y: centerY
+            });
+        }
+        return body;
     }
 
     /**
-     * @returns {string}
+     * Gets snek's fill color.
+     * @returns {string} fill color
      */
     get color() {
         return this._color;
     }
 
     /**
-     * @returns {string}
+     * Gets snek's border color.
+     * @returns {string} border color
      */
     get borderColor() {
         return this._borderColor;
     }
 
     /**
-     * @returns {boolean}
+     * Gets whether snek is glowing.
+     * @returns {boolean} true if snek is glowing; false otherwise
      */
     get isGlowing() {
         return this._isGlowing;
     }
 
     /**
-     * @returns {void}
+     * Gets the position of snek's head.
+     * @returns {{ x: number; y: number }} head position
      */
-    advanceHead() {
-        const head = { x: this._body[0].x + this._dx, y: this._body[0].y + this._dy };
+    getHeadPosition() {
+        return { ...this._body[0] };
+    }
+
+    /**
+     * Gets the current direction of snek.
+     * @returns {string} current direction ('left', 'right', 'up', or 'down')
+     */
+    getCurrentDirection() {
+        const key = `${this._dx},${this._dy}`;
+        return this._directionMap.get(key) || 'unknown';
+    }
+
+    /**
+     * Moves snek in its current direction.
+     * @param {boolean} growing whether snek should grow
+     */
+    move(growing = false) {
+        this._advanceHead();
+        if (!growing) {
+            this._advanceTail();
+        }
+    }
+
+    /**
+     * Advances snek's head.
+     */
+    _advanceHead() {
+        // note: round to snap snek movement to grid, as defined by blockSize
+        const head = {
+            x: Math.round((this.getHeadPosition().x + this._dx) / this._blockSize) * this._blockSize,
+            y: Math.round((this.getHeadPosition().y + this._dy) / this._blockSize) * this._blockSize
+        };
         this._body.unshift(head);
+
+        this._isChangingDirection = false;
 
         // TODO: add to control panel
         // console.log(`HEAD: ${head.x}, ${head.y}`);
     }
 
     /**
-     * @returns {void}
+     * Advances snek's tail (removes the last segment).
      */
-    advanceTail() {
+    _advanceTail() {
         this._body.pop();
     }
 
     /**
-     * @returns {void}
+     * Teleports snek's head to a new position.
+     * Useful for unit testing.
+     * @param {{ x: number; y: number }} newPosition new position for the head
+     */
+    teleportHead(newPosition) {
+        this._body[0] = { ...newPosition };
+    }
+
+    /**
+     * Executes a callback for each segment of snek's body.
+     * @param {(segment: { x: number; y: number }, index: number) => void} callback
+     */
+    forEachSegment(callback) {
+        this._body.forEach((segment, index) => callback({ ...segment }, index));
+    }
+
+    /**
+     * Pauses snek's movement.
      */
     pause() {
         // save velocity at pause
@@ -96,7 +167,7 @@ export class Snake {
     }
 
     /**
-     * @returns {void}
+     * Resumes snek's movement after a pause.
      */
     unpause() {
         // set velocity to state before pause
@@ -105,94 +176,91 @@ export class Snake {
     }
 
     /**
-     * @param {import('./item').Item} item
-     * @returns {boolean}
+     * Checks if snek has eaten an item.
+     * @param {import('./item').Item} item - item to check
+     * @returns {boolean} true if snek has eaten the item; false otherwise
      */
     didEat(item) {
-        // TODO: there's a pixel offset bug somewhere that forces this rounding.
-        // bug also creates a visual bug in teleporting
-        return this._round(this._body[0].x, 0) === this._round(item.x, 0) &&
-            this._round(this._body[0].y, 0) === this._round(item.y, 0);
+        let head = this.getHeadPosition();
+        return head.x === item.x && head.y === item.y;
     }
 
     /**
-     * @param {import('./item').Item} item
-     * @returns void
+     * Equips snek with a power-up
+     * @param {import('./item').Item} item - power-up item to equip
      */
     equip(item) {
-        if (item instanceof Teleport) this.powerUps[Teleport] = true;
+        if (item instanceof Teleport) this.powerUps[TELEPORT_CLASSNAME] = true;
         if (item instanceof Phase) {
-            this.powerUps[Phase] = true;
+            this.powerUps[PHASE_CLASSNAME] = true;
             this.setGlow(true);
         }
     }
 
     /**
-     * @param {boolean} shouldGlow
-     * @returns {void}
+     * Sets the glow effect on snek.
+     * @param {boolean} shouldGlow - whether snek should glow
      */
     setGlow(shouldGlow) {
-        if (shouldGlow && !this._isGlowing) {
-            this._borderColor = PHASE_BORDER_COLOR;
-            this._isGlowing = true;
-            // console.log(`[snake] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
-        }
+        if (shouldGlow === this.isGlowing) return;
 
-        if (!shouldGlow && this._isGlowing) {
-            this._borderColor = DEFAULT_BORDER_COLOR;
-            this._isGlowing = false;
-            // console.log(`[snake] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
-        }
+        this._isGlowing = shouldGlow;
+
+        this._borderColor = shouldGlow ? SNAKE.PHASE_BORDER_COLOR : SNAKE.DEFAULT_BORDER_COLOR;
+
+        // console.log(`[snek] shouldGlow: ${shouldGlow}; borderColor: ${this.borderColor}; isGlowing: ${this.isGlowing}`);
     }
 
     /**
-     * @param {number} boardWidth
-     * @param {number} boardHeight
-     * @param {number} blockSize
-     * @returns {boolean}
+     * Checks if snek has collided with itself or the board boundaries.
+     * @param {number} boardWidth - width of the game board
+     * @param {number} boardHeight - height of the game board.
+     * @param {number} blockSize - size of each block on the board
+     * @returns {boolean} true if snek has collided; false otherwise
      */
     didCollide(boardWidth, boardHeight, blockSize) {
-        // test whether the snake collided with itself
-        // loop starts at index 4 because it is impossible for the first three parts to touch each other
-        for (let i = 4; i < this._body.length; i++) {
-            const didCollide = this._body[i].x === this._body[0].x && this._body[i].y === this._body[0].y;
-            if (didCollide) {
-                if (this.powerUps[Phase]) {
-                    // if phase powerup is available, decrement and continue game
-                    this.powerUps[Phase] = false;
-                    this.setGlow(false);
+        let head = this.getHeadPosition();
 
-                    // console.log('PHASE!');
-                    return false;
-                }
-                return true;
+        // loop starts at index 4 because it is impossible for the first three parts to touch each other
+        const collidesWithSelf = this._body.slice(4).some(segment => segment.x === head.x && segment.y === head.y);
+        if (collidesWithSelf) {
+            if (this.powerUps[PHASE_CLASSNAME]) {
+                // if phase powerup is equipped, decrement, ignore collision, and continue game
+                this.powerUps[PHASE_CLASSNAME] = false;
+                this.setGlow(false);
+
+                console.log('snek phased!');
+                return false;
             }
+            return true;
         }
 
-        const hitLeftWall = this._body[0].x < 0;
-        const hitRightWall = this._body[0].x > boardWidth;
-        const hitTopWall = this._body[0].y < 0;
-        const hitBottomWall = this._body[0].y > boardHeight;
+        // check for collisions with walls
+        const hitLeftWall = head.x < 0;
+        const hitRightWall = head.x + blockSize > boardWidth;
+        const hitTopWall = head.y < 0;
+        const hitBottomWall = head.y + blockSize > boardHeight;
 
         const hitWall = hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
 
         if (!hitWall) { return false; }
 
-        // if teleport power is available, decrement, teleport, and continue game
-        if (this.powerUps[Teleport]) {
-            this.powerUps[Teleport] = false;
+        // if teleport power is equipped, decrement, teleport, and continue game
+        if (this.powerUps[TELEPORT_CLASSNAME]) {
+            this.powerUps[TELEPORT_CLASSNAME] = false;
 
+            // teleport to opposite side of the board
             if (hitLeftWall) {
-                this._body[0].x = boardWidth - blockSize;
+                this.teleportHead({x: boardWidth - blockSize, y: head.y});
             } else if (hitRightWall) {
-                this._body[0].x = 0;
+                this.teleportHead({x: 0, y: head.y});
             } else if (hitTopWall) {
-                this._body[0].y = boardHeight - blockSize;
+                this.teleportHead({x: head.x, y: boardHeight - blockSize});
             } else if (hitBottomWall) {
-                this._body[0].y = 0;
+                this.teleportHead({x: head.x, y: 0});
             }
 
-            // console.log('TELEPORT!');
+            console.log('snek teleported!');
             return false;
         }
 
@@ -200,84 +268,43 @@ export class Snake {
     }
 
     /**
-     * @param {string} keyPressed
-     * @returns {void}
+     * Changes the direction of snek.
+     * @param {string} direction - new direction
+     * @returns {boolean} true if snek direction was changed; false otherwise
      */
-    changeDirectionByKey(keyPressed) {
-        if (this.isChangingDirection) { return; }
-        this.isChangingDirection = true;
+    changeDirection(direction) {
+        // prevent changing direction multiple times before the next move
+        if (this._isChangingDirection) return false;
 
-        const goingUp = this._dy === -this._blockSize;
-        const goingDown = this._dy === this._blockSize;
-        const goingRight = this._dx === this._blockSize;
-        const goingLeft = this._dx === -this._blockSize;
+        const newDirection = getDirection(direction);
+        if (!newDirection) return false;
 
-        if (keyPressed === LEFT_KEY && !goingRight) { this._dx = -this._blockSize; this._dy = 0; }
-        if (keyPressed === UP_KEY && !goingDown) { this._dx = 0; this._dy = -this._blockSize; }
-        if (keyPressed === RIGHT_KEY && !goingLeft) { this._dx = this._blockSize; this._dy = 0; }
-        if (keyPressed === DOWN_KEY && !goingUp) { this._dx = 0; this._dy = this._blockSize; }
+        const currentDirection = this._getCurrentDirection();
+        // prevent snek from moving back on itself
+        if (isOppositeDirection(currentDirection, newDirection)) return false;
+
+        this._setNewDirection(newDirection);
+        return true;
     }
 
     /**
-     * @param {number} beta
-     * @param {number} gamma
-     * @param {number} lastBeta
-     * @param {number} lastGamma
-     * @param {number} sensitivity
-     * @returns {{ newBeta: number; newGamma: number; }}
+     * Gets the current direction of snek.
+     * @returns {import('./direction').Direction} current direction
+     * @private
      */
-    changeDirectionByMvmt(beta, gamma, lastBeta, lastGamma, sensitivity) {
-        let newBeta = lastBeta;
-        let newGamma = lastGamma;
-
-        if (this.isChangingDirection) {
-            return {
-                newBeta: newBeta,
-                newGamma: newGamma
-            };
-        }
-        this.isChangingDirection = true;
-
-        const betaDelta = lastBeta - beta;
-        const gammaDelta = lastGamma - gamma;
-
-        const goingUp = this._dy === -this._blockSize;
-        const goingDown = this._dy === this._blockSize;
-        const goingRight = this._dx === this._blockSize;
-        const goingLeft = this._dx === -this._blockSize;
-
-        let dir;
-        if (betaDelta < -sensitivity) {
-            if (!goingUp) { dir = 'DOWN'; this._dx = 0; this._dy = this._blockSize; newGamma = gamma; }
-            newBeta = beta;
-        } else if (betaDelta > sensitivity) {
-            if (!goingDown) { dir = 'UP'; this._dx = 0; this._dy = -this._blockSize; newGamma = gamma; }
-            newBeta = beta;
-        } else if (gammaDelta < -sensitivity) {
-            if (!goingLeft) { dir = 'RIGHT'; this._dx = this._blockSize; this._dy = 0; newBeta = beta; }
-            newGamma = gamma;
-        } else if (gammaDelta > sensitivity) {
-            if (!goingRight) { dir = 'LEFT'; this._dx = -this._blockSize; this._dy = 0; newBeta = beta; }
-            newGamma = gamma;
-        }
-
-        // if (dir) {
-        //     console.log(`going${dir}`);
-        // }
-
-        return {
-            newBeta: newBeta,
-            newGamma: newGamma
-        };
+    _getCurrentDirection() {
+        // normalize the current velocity to get direction
+        return normalizeDirection(this._dx, this._dy);
     }
 
     /**
-     * @param {number} value
-     * @param {number} precision
-     * @returns {number}
+     * Sets a new direction for snek.
+     * @param {import('./direction').Direction} direction - new direction
+     * @private
      */
-    _round(value, precision = 1) {
-        var multiplier = Math.pow(10, precision || 0);
-        return Math.round(value * multiplier) / multiplier;
+    _setNewDirection(direction) {
+        this._isChangingDirection = true;
+        this._dx = direction.dx * this._blockSize;
+        this._dy = direction.dy * this._blockSize;
     }
 }
