@@ -189,6 +189,12 @@ describe('InputHandler', () => {
 
             expect(mockSnake.changeDirection).not.toHaveBeenCalled();
         });
+
+        // TODO: add iOS-specific tests for:
+        //  - requesting permission for device orientation
+        //  - caching when permission was already granted in a page session
+        //  - disabling pausing while requesting permission
+        //  - ensuring only a single motion request button is ever created
     });
 
     describe('Visibility change handling', () => {

@@ -10,6 +10,12 @@ const UP_KEY = 'ArrowUp';
 const DOWN_KEY = 'ArrowDown';
 
 /**
+ * global to persist permission state across game sessions.
+ * possible values: 'unknown', 'requesting', 'granted', 'denied'
+ * */
+let motionPermissionState = 'unknown';
+
+/**
  * Handles user input for the game.
  */
 export class InputHandler {
@@ -30,16 +36,35 @@ export class InputHandler {
     }
 
     /**
+     * Creates and returns an object containing all event handler methods bound to the current instance of InputHandler.
+     * Ensures they always have the correct `this` context when called, regardless of how they are invoked.
+     * @returns {Object} object containing bound method references
+     * @private
+     */
+    _bindMethods() {
+        return {
+            handleKeyInput: this._handleKeyInput.bind(this),
+            handleDeviceMovement: this._handleDeviceMovement.bind(this),
+            handleVisibilityChange: this._handleVisibilityChange.bind(this),
+            handlePauseClick: this._handlePauseClick.bind(this),
+            requestDeviceOrientation: this._requestDeviceOrientation.bind(this),
+            enterFullScreen: this._game.board.enterFullScreen.bind(this._game.board),
+            handleTouchStart: this._handleTouchStart.bind(this),
+            handleTouchEnd: this._handleTouchEnd.bind(this),
+            handleRestart: this._handleRestart.bind(this)
+        };
+    }
+
+    /**
      * Manages all control event listeners for the game.
      * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
      */
     manageGameControls(shouldAdd) {
         this._manageKeyboardControls(shouldAdd);
+        this._manageMotionControls(shouldAdd);
         this._manageTouchControls(shouldAdd);
+        this._manageClickControls(shouldAdd);
         this._manageVisibilityControl(shouldAdd);
-        this._managePauseControl(shouldAdd);
-        this._manageFullscreenControl(shouldAdd);
-        this._manageDeviceOrientationControl(shouldAdd);
     }
 
     /**
@@ -54,26 +79,6 @@ export class InputHandler {
         }
         document[action]('keydown', this._boundMethods.handleRestart);
         document[action]('click', this._boundMethods.handleRestart);
-    }
-
-    /**
-     * Creates and returns an object containing all event handler methods bound to the current instance of InputHandler.
-     * Ensures they always have the correct `this` context when called, regardless of how they are invoked.
-     * @returns {Object} object containing bound method references
-     * @private
-     */
-    _bindMethods() {
-        return {
-            handleKeyInput: this._handleKeyInput.bind(this),
-            handleDeviceMovement: this._handleDeviceMovement.bind(this),
-            handleVisibilityChange: this._handleVisibilityChange.bind(this),
-            requestDeviceOrientation: this._requestDeviceOrientation.bind(this),
-            togglePause: this._game.togglePause.bind(this._game),
-            enterFullScreen: this._game.board.enterFullScreen.bind(this._game.board),
-            handleTouchStart: this._handleTouchStart.bind(this),
-            handleTouchEnd: this._handleTouchEnd.bind(this),
-            handleRestart: this._handleRestart.bind(this)
-        };
     }
 
     /**
@@ -98,6 +103,17 @@ export class InputHandler {
     }
 
     /**
+     * Manages click control event listeners for the game.
+     * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
+     * @private
+     */
+    _manageClickControls(shouldAdd) {
+        const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
+        document[action]('click', this._boundMethods.handlePauseClick);
+        document[action]('dblclick', this._boundMethods.enterFullScreen);
+    }
+
+    /**
      * Set up visibility change control event listeners for the game.
      * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
      * @private
@@ -108,52 +124,44 @@ export class InputHandler {
     }
 
     /**
-     * Set up pause control event listeners for the game.
+     * Set up motion control event listeners for the game, if available.
      * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
      * @private
      */
-    _managePauseControl(shouldAdd) {
-        const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
-        document[action]('click', this._boundMethods.togglePause);
+    _manageMotionControls(shouldAdd) {
+        if (typeof DeviceOrientationEvent === 'undefined') return;
+        shouldAdd ? this._listenToDeviceOrientation() : window.removeEventListener('deviceorientation', this._boundMethods.handleDeviceMovement);
     }
 
     /**
-     * Set up fullscreen control event listeners for the game.
-     * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
+     * Checks if device orientation events are supported and sets up the appropriate listeners or permission requests.
+     * If permission is required (e.g., on iOS 13+), it creates a button for the user to request permission.
+     * If permission is already granted or not required, it activates motion control immediately.
      * @private
      */
-    _manageFullscreenControl(shouldAdd) {
-        const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
-        document[action]('dblclick', this._boundMethods.enterFullScreen);
-    }
-
-    /**
-     * Set up device orientation event listeners for the game, if available.
-     * @param {boolean} shouldAdd - if true, adds the event listeners; if false, removes them.
-     * @private
-     */
-    _manageDeviceOrientationControl(shouldAdd) {
-        const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
-
-        if (typeof DeviceOrientationEvent !== 'undefined') {
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                if (shouldAdd) {
-                    let btn = this._game.board.createMotionRequestBtn();
-                    if (btn) {
-                        btn.addEventListener('click', this._boundMethods.requestDeviceOrientation);
-
-                        // give user time to grant permission
-                        this._game.togglePause();
-                    }
-                } else {
-                    let btn = this._game.board.getMotionRequestBtn();
-                    if (btn) {
-                        btn.removeEventListener('click', this._boundMethods.requestDeviceOrientation);
-                    }
-                }
+    _listenToDeviceOrientation() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            if (motionPermissionState === 'granted') {
+                this._activateMotionControl();
             } else {
-                window[action]('deviceorientation', this._boundMethods.handleDeviceMovement);
+                this._createMotionRequestButton();
             }
+        } else {
+            window.addEventListener('deviceorientation', this._boundMethods.handleDeviceMovement);
+        }
+    }
+
+    _createMotionRequestButton() {
+        let btn = this._game.board.createMotionRequestButton();
+        if (btn) {
+            btn.addEventListener('click', this._boundMethods.requestDeviceOrientation);
+
+            // give user time to grant permission
+            if (!this._game.state.paused) {
+                this._game.togglePause();
+            }
+
+            motionPermissionState = 'requesting';
         }
     }
 
@@ -164,35 +172,47 @@ export class InputHandler {
      */
     _handleKeyInput(event) {
         const keyCommands = {
-            [LEFT_KEY]: new MoveCommand(DIRECTION_LEFT),
-            [RIGHT_KEY]: new MoveCommand(DIRECTION_RIGHT),
-            [UP_KEY]: new MoveCommand(DIRECTION_UP),
-            [DOWN_KEY]: new MoveCommand(DIRECTION_DOWN),
-            [SPACE_KEY]: new PauseCommand()
+            [LEFT_KEY]: () => this._game.snake.changeDirection(DIRECTION_LEFT),
+            [RIGHT_KEY]: () => this._game.snake.changeDirection(DIRECTION_RIGHT),
+            [UP_KEY]: () => this._game.snake.changeDirection(DIRECTION_UP),
+            [DOWN_KEY]: () => this._game.snake.changeDirection(DIRECTION_DOWN),
+            [SPACE_KEY]: () => this._game.togglePause(),
         };
 
-        const command = keyCommands[event.code];
-        if (command) {
-            if (this._motionAvailable === null && !this._game.state._ended) {
+        const commandFn = keyCommands[event.code];
+        if (commandFn) {
+            if (this._motionAvailable === null && !this._game.state.ended) {
                 console.log('key controls activated');
             }
 
             // disable motion control when keyboard is used
             // (having both keyboard and motion event listeners makes the game less responsive)
-            this._disableMotionControl();
+            this._deactivateMotionControl();
 
-            command.execute(this._game);
+            commandFn();
+        }
+    }
+
+    /**
+     * Handles click events for pausing the game.
+     * Disallows pause clicks while the game is requesting motion permission.
+     * @param {MouseEvent} event - The click event object
+     * @private
+     */
+    _handlePauseClick(event) {
+        if (motionPermissionState !== 'requesting') {
+            this._game.togglePause();
         }
     }
 
     /**
      * Handles restart events triggered by key press, click, or touch.
-     * @param {KeyboardEvent | MouseEvent | TouchEvent} ev - event object
+     * @param {KeyboardEvent | MouseEvent | TouchEvent} event - event object
      */
-    _handleRestart(ev) {
-        if ((ev instanceof KeyboardEvent && ev.code === SPACE_KEY) ||
-            ev.type === 'click' ||
-            ev.type === 'touchend') {
+    _handleRestart(event) {
+        if ((event instanceof KeyboardEvent && event.code === SPACE_KEY) ||
+            event.type === 'click' ||
+            event.type === 'touchend') {
             this._game.restart();
         }
     }
@@ -223,15 +243,82 @@ export class InputHandler {
         // check if this is the first significant movement detected
         // used to determine when to switch from keyboard to motion controls
         if (this._motionAvailable === null && this._isSignificantMotion(orientationChange)) {
-            this._enableMotionControl();
+            this._activateMotionControl();
         }
 
         const direction = this._getDirectionFromOrientation(orientationChange);
         if (direction) {
-            let command = new MoveCommand(direction);
-            command.execute(this._game);
+            this._game.snake.changeDirection(direction);
             this._lastOrientationUpdate = now;
             this._deviceOrientation = currentOrientation;
+        }
+    }
+
+    /**
+     * Handles visibility change of the document.
+     * @private
+     */
+    _handleVisibilityChange() {
+        if (document.hidden && !this._game.state.paused) {
+            this._game.togglePause();
+        }
+    }
+
+    /**
+     * Handles the touch start event.
+     * Records the initial Y position of the touch.
+     * @param {TouchEvent} event - touch start event
+     * @private
+     */
+    _handleTouchStart(event) {
+        event.preventDefault();
+
+        const firstTouch = event.changedTouches[0];
+        // console.log({
+        //     [ev.type]: (firstTouch.screenX, firstTouch.screenY)
+        // });
+
+        this._touchStart = { x: firstTouch.screenX, y: firstTouch.screenY };
+    }
+
+    /**
+     * Handles the touch end event.
+     * Records the final Y position of the touch and calls handleSwipeGesture.
+     * @param {TouchEvent} event - touch end event
+     * @private
+     */
+    _handleTouchEnd(event) {
+        event.preventDefault();
+
+        const firstTouch = event.changedTouches[0];
+        // console.log({
+        //     [ev.type]: (firstTouch.screenX, firstTouch.screenY)
+        // });
+
+        this._touchEnd = { x: firstTouch.screenX, y: firstTouch.screenY };
+
+        this._handleSwipeGesture();
+    }
+
+    /**
+     * Handles the gesture based on the swipe direction.
+     * Enters fullscreen on upward swipe, exits fullscreen on downward swipe,
+     * restarts the game if it has ended, or toggles pause otherwise.
+     * @private
+     */
+    _handleSwipeGesture() {
+        const verticalSwipe = this._touchStart.y - this._touchEnd.y;
+        if (verticalSwipe > INPUT.SWIPE_SENSITIVITY) {
+            // console.log(`swiped UP ${downY-upY}px`);
+            this._game.board.enterFullScreen();
+        } else if (verticalSwipe < -INPUT.SWIPE_SENSITIVITY) {
+            // console.log(`swiped DOWN ${upY-downY}px`);
+            this._game.board.exitFullScreen();
+        } else if (this._game.state.ended) {
+            this._game.restart();
+        } else if (motionPermissionState !== 'requesting') {
+            // console.log(`togglePause from handleGesture`);
+            this._game.togglePause();
         }
     }
 
@@ -273,39 +360,38 @@ export class InputHandler {
     }
 
     /**
-     * Handles visibility change of the document.
-     * @private
-     */
-    _handleVisibilityChange() {
-        if (document.hidden && !this._game.state.paused) {
-            this._game.togglePause();
-        }
-    }
-
-    /**
      * Request device orientation permission.
      * @private
      */
     _requestDeviceOrientation() {
         // iOS 13+ requires permission
         DeviceOrientationEvent.requestPermission()
-            .then(response => {
-                if (response === 'granted') {
-                    this._enableMotionControl();
+            .then(state => {
+                motionPermissionState = state;
+                if (state === 'granted') {
+                    this._activateMotionControl();
+                    if (this._game.state.paused) {
+                        this._game.togglePause();
+                    }
+                } else {
+                    console.log('motion permission denied');
                 }
             })
-            .catch(console.error);
+            .catch(console.error)
+            .finally(() => {
+                this._game.board.removeMotionRequestButton();
+            });
     }
 
     /**
      * Enables motion control for the game.
      * @private
      */
-    _enableMotionControl() {
+    _activateMotionControl() {
         document.removeEventListener('keydown', this._boundMethods.handleKeyInput);
         window.addEventListener('deviceorientation', this._boundMethods.handleDeviceMovement);
 
-        this._game.board.removeMotionRequestBtn();
+        this._game.board.removeMotionRequestButton();
         this._game.state.setSpeed(INPUT.GAME_SPEED_MS__MOTION);
         this._motionAvailable = true;
 
@@ -316,8 +402,8 @@ export class InputHandler {
      * Disables motion control for the game.
      * @private
      */
-    _disableMotionControl() {
-        this._game.board.removeMotionRequestBtn();
+    _deactivateMotionControl() {
+        this._game.board.removeMotionRequestButton();
         window.removeEventListener('deviceorientation', this._handleDeviceMovement);
         this._game.state.setSpeed(INPUT.GAME_SPEED_MS__ARROW);
         this._motionAvailable = false;
@@ -332,6 +418,7 @@ export class InputHandler {
     _debugMotionControl() {
         console.log('motion control debug info', {
             motionAvailable: this._motionAvailable,
+            motionPermissionState: motionPermissionState,
             deviceOrientation: this._deviceOrientation,
             isChangingDirection: this._game.snake._isChangingDirection,
             snakeDirection: this._game.snake.getCurrentDirection()
@@ -339,62 +426,34 @@ export class InputHandler {
     }
 
     /**
-     * Handles the touch start event.
-     * Records the initial Y position of the touch.
-     * @param {TouchEvent} ev - touch start event
+     * Simulates the presence of the DeviceOrientationEvent.requestPermission API.
+     * This method is useful for testing or development environments where the actual API might not be available.
+     * It creates a mock DeviceOrientationEvent object with a requestPermission method that always resolves to 'granted'.
+     * @static
      * @private
      */
-    _handleTouchStart(ev) {
-        ev.preventDefault();
-
-        const firstTouch = ev.changedTouches[0];
-        // console.log({
-        //     [ev.type]: (firstTouch.screenX, firstTouch.screenY)
-        // });
-
-        this._touchStart = { x: firstTouch.screenX, y: firstTouch.screenY };
-    }
-
-    /**
-     * Handles the touch end event.
-     * Records the final Y position of the touch and calls handleSwipeGesture.
-     * @param {TouchEvent} ev - touch end event
-     * @private
-     */
-    _handleTouchEnd(ev) {
-        ev.preventDefault();
-
-        const firstTouch = ev.changedTouches[0];
-        // console.log({
-        //     [ev.type]: (firstTouch.screenX, firstTouch.screenY)
-        // });
-
-        this._touchEnd = { x: firstTouch.screenX, y: firstTouch.screenY };
-
-        this._handleSwipeGesture();
-    }
-
-    /**
-     * Handles the gesture based on the swipe direction.
-     * Enters fullscreen on upward swipe, exits fullscreen on downward swipe,
-     * restarts the game if it has ended, or toggles pause otherwise.
-     * @private
-     */
-    _handleSwipeGesture() {
-        if (this._touchStart.y - this._touchEnd.y > INPUT.SWIPE_SENSITIVITY) {
-            // console.log(`swiped UP ${downY-upY}px`);
-            this._game.board.enterFullScreen();
-        } else if (this._touchEnd.y - this._touchStart.y > INPUT.SWIPE_SENSITIVITY) {
-            // console.log(`swiped DOWN ${upY-downY}px`);
-            this._game.board.exitFullScreen();
-        } else if (this._game.state.ended) {
-            this._game.restart();
-        } else {
-            // console.log(`togglePause from handleGesture`);
-            this._game.togglePause();
+    static _simulateDeviceOrientationRequestPermission() {
+        // create DeviceOrientationEvent if it doesn't exist
+        if (typeof DeviceOrientationEvent === 'undefined') {
+            window.DeviceOrientationEvent = {};
         }
+
+        // add requestPermission method
+        window.DeviceOrientationEvent.requestPermission = () => {
+            return new Promise((resolve) => {
+                resolve('granted');
+            });
+        };
+
+        // modify typeof operator for requestPermission
+        Object.defineProperty(Object.prototype, 'requestPermission', {
+            value: function() {}
+        });
     }
 }
+
+// TODO: consider refactoring to use Command interface again if
+// key controls AND mouse/touch/motion controls can all use it
 
 /**
  * Represents a command to pause the game.

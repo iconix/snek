@@ -89,13 +89,29 @@ describe('Board', () => {
     test('should create and remove motion request button', () => {
         const board = new Board(canvas, ctrlPanel);
 
-        const btn = board.createMotionRequestBtn();
+        const btn = board.createMotionRequestButton();
         expect(btn).toBeDefined();
         expect(btn?.id).toBe('motionRequest');
         expect(ctrlPanel.contains(btn)).toBe(true);
 
-        board.removeMotionRequestBtn();
+        board.removeMotionRequestButton();
         expect(ctrlPanel.contains(btn)).toBe(false);
+    });
+
+    test('should return existing motion request button if already created', () => {
+        const board = new Board(canvas, ctrlPanel);
+
+        const firstBtn = board.createMotionRequestButton();
+        expect(firstBtn).toBeDefined();
+        expect(firstBtn?.id).toBe('motionRequest');
+        expect(ctrlPanel.contains(firstBtn)).toBe(true);
+
+        const secondBtn = board.createMotionRequestButton();
+        expect(secondBtn).toBe(firstBtn);
+        expect(ctrlPanel.querySelectorAll('#motionRequest').length).toBe(1);
+
+        board.removeMotionRequestButton();
+        expect(ctrlPanel.contains(firstBtn)).toBe(false);
     });
 
     test('should check for motion permission correctly', () => {
@@ -103,10 +119,10 @@ describe('Board', () => {
 
         expect(board.needsPermission()).toBe(false);
 
-        board.createMotionRequestBtn();
+        board.createMotionRequestButton();
         expect(board.needsPermission()).toBe(true);
 
-        board.removeMotionRequestBtn();
+        board.removeMotionRequestButton();
         expect(board.needsPermission()).toBe(false);
     });
 });

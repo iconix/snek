@@ -42,9 +42,12 @@ export class MockBoard extends Board {
     setPauseGameFilter() { this._activeFilter = BOARD.FILTERS.PAUSE; }
     enterFullScreen() { /* mock implementation */ }
     exitFullScreen() { /* mock implementation */ }
-    createMotionRequestBtn() { return document.createElement('button'); }
-    getMotionRequestBtn() { return document.getElementById('motionRequest'); }
-    removeMotionRequestBtn() { /* mock implementation */ }
+    createMotionRequestButton() { return document.createElement('button'); }
+    getMotionRequestButton() {
+        const element = document.getElementById('motionRequest');
+        return element instanceof HTMLButtonElement ? element : null;
+    }
+    removeMotionRequestButton() { /* mock implementation */ }
     setGlow(shouldGlow) {
         this._isGlowing = shouldGlow;
         if (shouldGlow) {

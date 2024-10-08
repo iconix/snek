@@ -162,10 +162,14 @@ export class Board {
 
     /**
      * Creates a button in control panel to request motion control permission.
+     * If the button already exists, it returns the existing button.
      * @returns {HTMLButtonElement | null} created button, or null if control panel does not exist
      */
-    createMotionRequestBtn() {
+    createMotionRequestButton() {
         if (!this._ctrlPanel) return null;
+
+        let existingBtn = this.getMotionRequestButton();
+        if (existingBtn) return existingBtn;
 
         let btn = document.createElement('button');
         btn.innerHTML = 'Allow Motion Control';
@@ -177,16 +181,18 @@ export class Board {
 
     /**
      * Gets the motion control request button.
+     * @returns {HTMLButtonElement | null} motion request button if it exists; otherwise null
      */
-    getMotionRequestBtn() {
-        return document.getElementById(MOTION_REQUEST_BUTTON_ID);
+    getMotionRequestButton() {
+        const element = document.getElementById(MOTION_REQUEST_BUTTON_ID);
+        return element instanceof HTMLButtonElement ? element : null;
     }
 
     /**
      * Removes the motion control request button.
      */
-    removeMotionRequestBtn() {
-        let btn = this.getMotionRequestBtn();
+    removeMotionRequestButton() {
+        let btn = this.getMotionRequestButton();
         btn?.parentNode?.removeChild(btn);
     }
 

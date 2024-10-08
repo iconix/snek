@@ -182,7 +182,7 @@ describe('Game Integration Tests', () => {
         game.state.updateScore(GAME.SCORE_INCREMENT * 10);
 
         // Update game speed
-        game.state.setSpeed(INPUT.GAME_SPEED__ARROW - 50);  // Assume speed increases with score
+        game.state.setSpeed(INPUT.GAME_SPEED_MS__ARROW - 50);  // Assume speed increases with score
 
         expect(game.state.speed).toBeLessThan(initialSpeed);
     });

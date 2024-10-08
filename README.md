@@ -34,12 +34,13 @@ for a detailed overview of game architecture, please refer to [ARCHITECTURE.md](
 λ npm install -g firebase-tools
 λ firebase login
 λ firebase init  # one-time setup
+λ npm run build  # build latest code
 λ firebase deploy
 ```
 
 ## wishlist
 - [ ] reimplement in phaser, just to compare and contrast
-- [ ] motion controls 'could be better'
+- [ ] motion controls 'could be better' - game is a bit too difficult/jittery with motion
 - [ ] turn on firebase cloud logging and analytics
 - [ ] debug mode: extra logging, output debug info to screen (like canvas dimensions, etc.)
 - [ ] add thought bubbles at random as snek eats its food? when it's gone a while without food (so hungry...)?

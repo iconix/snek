@@ -91,7 +91,7 @@ describe('GameState', () => {
         test('should use default game speed if not set in localStorage', () => {
             localStorageMock.getItem.mockReturnValue(null);
             gameState = new GameState();
-            expect(gameState.speed).toBe(INPUT.GAME_SPEED__ARROW);
+            expect(gameState.speed).toBe(INPUT.GAME_SPEED_MS__ARROW);
         });
 
         test('should set game speed correctly', () => {
