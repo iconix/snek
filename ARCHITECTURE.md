@@ -150,3 +150,62 @@ The modular design allows for easy extensions:
 - Additional power-ups can be implemented in the `Snake` class.
 - New game modes can be created by extending the `Game` class or modifying game logic.
 - Visual themes can be adjusted by modifying the `Board` class and related rendering functions.
+
+## Build System
+
+The project uses a lightweight build system to prepare the game for deployment. It was initially introduced to bundle the JS modules. This system is configured using npm scripts and Rollup.
+
+### Key Components:
+
+1. **npm Scripts**: Defined in `package.json`, these scripts automate various build tasks.
+
+2. **Rollup**: Used as the module bundler, configured in `rollup.config.js`.
+
+3. **Terser**: A plugin for Rollup that minifies the JavaScript output.
+
+### Build Process:
+
+1. **Cleaning**: The `clean` script removes the previous build artifacts from the `dist` directory.
+
+2. **JavaScript Bundling**: The `js` script uses Rollup to bundle and optionally minify the JavaScript files.
+
+3. **Asset Copying**: The `copy-css` and `copy-html` scripts copy CSS and HTML files to the `dist` directory.
+
+4. **Full Build**: The `build` script runs the cleaning process followed by JavaScript bundling and asset copying.
+
+5. **Development Server**: The `server` script starts a development server with live reloading using Browser-Sync.
+
+6. **Watching**: Several watch scripts (`watch-js`, `watch-css`, `watch-html`) monitor for changes in source files and trigger rebuilds as necessary.
+
+### Key Features:
+
+- **Module Resolution**: Rollup handles module resolution, allowing the use of ES6 import/export syntax.
+- **Minification**: The Terser plugin minifies the JavaScript for production builds.
+- **Source Maps**: Generated for easier debugging of the minified code.
+
+## Deployment System
+
+The project is set up for deployment to Firebase Hosting.
+
+### Key Components:
+
+1. **Firebase Configuration**: The `firebase.json` file configures the Firebase Hosting settings.
+
+2. **Hosting Settings**:
+   - The `public` directory is set to `dist`, which contains the built assets.
+   - Custom headers are set to prevent caching.
+   - A rewrite rule is configured to serve `snek.html` for all routes.
+
+### Deployment Process:
+
+1. **Build**: Run the `npm run build` command to create a production-ready build in the `dist` directory.
+
+2. **Deploy**: Use the Firebase CLI command `firebase deploy` to upload the contents of the `dist` directory to Firebase Hosting.
+
+### Key Features:
+
+- **Cache Control**: The configuration ensures that the latest version of the game is always served by preventing caching.
+- **Single Page App**: The rewrite rule allows the game to function as a single page application.
+- **Easy Updates**: Deploying updates is as simple as running the build process and using the Firebase CLI to deploy.
+
+This build and deployment setup allows for efficient development with live reloading, optimized production builds, and straightforward deployment to Firebase Hosting.
