@@ -2,6 +2,7 @@ import { Board } from '../board';
 import { GAME_CONFIG } from '../config';
 import { displayErrorMessage } from '../error';
 import { Food, Item, Phase, TELEPORT_CLASSNAME, Teleport, selectRandomItem } from '../item';
+import { MotionControlIndicator } from '../motion';
 import { Snake } from '../snake';
 import { InputHandler } from './input';
 import { renderGame, renderGameOver } from './render';
@@ -11,6 +12,7 @@ const { GAME } = GAME_CONFIG;
 
 const CANVAS_ID = 'gameCanvas';
 const CONTROL_PANEL_ID = 'controlPanel';
+const UI_CONTAINER_ID = 'uiContainer';
 
 /**
  * Represents the main game logic and state.
@@ -31,6 +33,15 @@ export class Game {
         this.input = new InputHandler(this);
 
         this._lastUpdateTimestamp = 0;
+
+        // properties for motion control indicator
+        this.orientation = { beta: 0, gamma: 0 };
+        this.motionDirection = null;
+        this.motionSensitivity = 1;
+
+        // TODO: put in control panel (debug tool)
+        // TODO: only show when motion control is active
+        this._initializeUI();
     }
 
     /**
@@ -81,6 +92,15 @@ export class Game {
         runGame();
     }
 
+    updateMotionControl(orientation, direction, sensitivity) {
+        this.orientation = orientation;
+        this.motionDirection = direction;
+        this.motionSensitivity = sensitivity;
+        if (this.motionIndicator) {
+            this.motionIndicator.update(orientation, direction, sensitivity);
+        }
+    }
+
     /**
      * Determines if the current frame of the game loop should be updated.
      * @param {DOMHighResTimeStamp} now - current timestamp
@@ -107,6 +127,19 @@ export class Game {
             // TODO: add to control panel
             // this.input._debugMotionControl();
         }
+    }
+
+    _initializeUI() {
+        const uiContainer = document.getElementById(UI_CONTAINER_ID);
+        if (!uiContainer) {
+            console.warn(`UI container with id '${UI_CONTAINER_ID}' not found. Motion control indicator will not be displayed.`);
+            return;
+        }
+
+        this.motionIndicator = new MotionControlIndicator(uiContainer, {
+            showInfo: false,
+            position: 'corner'
+        });
     }
 
     /**

@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../config';
 import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from '../direction';
+import { calculateMotionControl, isSignificantMotion } from '../motion';
 
 const { INPUT } = GAME_CONFIG;
 
@@ -25,14 +26,19 @@ export class InputHandler {
     constructor(game) {
         this._game = game;
         this._motionAvailable = null;
-        this._deviceOrientation = {
-            beta: 0,  // rotation around x-axis (-180 to 180)
-            gamma: 0  // rotation around y-axis (-90 to 90)
-        };
+        // this._deviceOrientation = {
+        //     beta: 0,  // rotation around x-axis (-180 to 180)
+        //     gamma: 0  // rotation around y-axis (-90 to 90)
+        // };
         this._lastOrientationUpdate = 0;
         this._touchStart = { x: 0, y: 0 };
         this._touchEnd = { x: 0, y: 0 };
         this._boundMethods = this._bindMethods();
+
+        // TODO: reset on game pause too
+        this._initialOrientation = null;
+        this._lastOrientation = { beta: 0, gamma: 0 };
+        this._sensitivityMultiplier = 1;
     }
 
     /**
@@ -223,35 +229,59 @@ export class InputHandler {
      * @private
      */
     _handleDeviceMovement(event) {
-        const now = Date.now();
+        // const now = Date.now();
 
         const currentOrientation = {
             beta: event.beta || 0,
             gamma: event.gamma || 0
         }
 
-        // ensure we're not updating too frequently / causing jerkiness
-        if (now - this._lastOrientationUpdate < INPUT.MOTION_THROTTLE_TIME_MS) {
+        // // ensure we're not updating too frequently / causing jerkiness
+        // if (now - this._lastOrientationUpdate < INPUT.MOTION_THROTTLE_TIME_MS) {
+        //     return;
+        // }
+
+        if (!this._initialOrientation) {
+            this._initialOrientation = { ...currentOrientation };
+            this._lastOrientation = { ...currentOrientation };
+            // update the game's motion control state with initial orientation
+            this._game.updateMotionControl(currentOrientation, null, this._sensitivityMultiplier);
             return;
         }
 
-        const orientationChange = {
-            beta: this._deviceOrientation.beta - currentOrientation.beta,
-            gamma: this._deviceOrientation.gamma - currentOrientation.gamma
-        }
+        const { direction, sensitivity, orientationChange } = calculateMotionControl(
+            currentOrientation,
+            this._initialOrientation,
+            this._lastOrientation,
+            this._sensitivityMultiplier
+        );
 
-        // check if this is the first significant movement detected
-        // used to determine when to switch from keyboard to motion controls
-        if (this._motionAvailable === null && this._isSignificantMotion(orientationChange)) {
-            this._activateMotionControl();
-        }
+        this._sensitivityMultiplier = sensitivity;
 
-        const direction = this._getDirectionFromOrientation(orientationChange);
-        if (direction) {
+        if (direction && isSignificantMotion(orientationChange, this._sensitivityMultiplier)) {
+            // check if this is the first significant movement detected
+            // used to determine when to switch from keyboard to motion controls
+            if (this._motionAvailable === null) {
+                this._activateMotionControl();
+            }
+
             this._game.snake.changeDirection(direction);
-            this._lastOrientationUpdate = now;
-            this._deviceOrientation = currentOrientation;
+            this._lastOrientation = currentOrientation;
         }
+
+        // const direction = this._getDirectionFromOrientation(recentChange);
+        // if (direction) {
+        //     this._game.snake.changeDirection(direction);
+        //     // this._lastOrientationUpdate = now;
+        //     this._lastOrientation = currentOrientation;
+        // }
+
+        // update motion control state
+        this._game.updateMotionControl(
+            currentOrientation,
+            direction,
+            this._sensitivityMultiplier
+        );
     }
 
     /**
@@ -322,42 +352,43 @@ export class InputHandler {
         }
     }
 
-    /**
-     * Determines if a change in device orientation is significant enough to trigger a direction change.
-     * Filters out small, unintentional device movements so we respond only to deliberate motions.
-     * @param {Object} orientationChange - change in device orientation
-     * @param {number} orientationChange.beta - change in beta (x-axis rotation) in degrees
-     * @param {number} orientationChange.gamma - change in gamma (y-axis rotation) in degrees
-     * @returns {boolean} true if the motion is considered significant; false otherwise
-     * @private
-     */
-    _isSignificantMotion(orientationChange) {
-        return Math.abs(orientationChange.beta) > INPUT.MOTION_SENSITIVITY ||
-               Math.abs(orientationChange.gamma) > INPUT.MOTION_SENSITIVITY;
-    }
+    // /**
+    //  * Determines if a change in device orientation is significant enough to trigger a direction change.
+    //  * Filters out small, unintentional device movements so we respond only to deliberate motions.
+    //  * @param {Object} orientationChange - change in device orientation
+    //  * @param {number} orientationChange.beta - change in beta (x-axis rotation) in degrees
+    //  * @param {number} orientationChange.gamma - change in gamma (y-axis rotation) in degrees
+    //  * @returns {boolean} true if the motion is considered significant; false otherwise
+    //  * @private
+    //  */
+    // _isSignificantMotion(orientationChange) {
+    //     const threshold = INPUT.MOTION_SENSITIVITY / this._sensitivityMultiplier;
+    //     return Math.abs(orientationChange.beta) > threshold || Math.abs(orientationChange.gamma) > threshold;
+    // }
 
-    /**
-     * Determine direction based on orientation change.
-     * @param {{ beta: number, gamma: number }} orientationChange - the change in device orientation
-     * @returns {string | null} determined direction or null
-     * @private
-     */
-    _getDirectionFromOrientation(orientationChange) {
-        if (Math.abs(orientationChange.beta) > Math.abs(orientationChange.gamma)) {
-            if (orientationChange.beta < -INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_DOWN;
-            } else if (orientationChange.beta > INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_UP;
-            }
-        } else {
-            if (orientationChange.gamma < -INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_RIGHT;
-            } else if (orientationChange.gamma > INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_LEFT;
-            }
-        }
-        return null;
-    }
+    // /**
+    //  * Determine direction based on orientation change.
+    //  * @param {{ beta: number, gamma: number }} orientationChange - the change in device orientation
+    //  * @returns {string | null} determined direction or null
+    //  * @private
+    //  */
+    // _getDirectionFromOrientation(orientationChange) {
+    //     const threshold = INPUT.MOTION_SENSITIVITY / this._sensitivityMultiplier;
+    //     if (Math.abs(orientationChange.beta) > Math.abs(orientationChange.gamma)) {
+    //         if (orientationChange.beta < -threshold) {
+    //             return DIRECTION_DOWN;
+    //         } else if (orientationChange.beta > threshold) {
+    //             return DIRECTION_UP;
+    //         }
+    //     } else {
+    //         if (orientationChange.gamma < -threshold) {
+    //             return DIRECTION_RIGHT;
+    //         } else if (orientationChange.gamma > threshold) {
+    //             return DIRECTION_LEFT;
+    //         }
+    //     }
+    //     return null;
+    // }
 
     /**
      * Request device orientation permission.
@@ -419,7 +450,8 @@ export class InputHandler {
         console.log('motion control debug info', {
             motionAvailable: this._motionAvailable,
             motionPermissionState: motionPermissionState,
-            deviceOrientation: this._deviceOrientation,
+            // deviceOrientation: this._deviceOrientation,
+            lastOrientation: this._lastOrientation,
             isChangingDirection: this._game.snake._isChangingDirection,
             snakeDirection: this._game.snake.getCurrentDirection()
         });
