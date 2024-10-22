@@ -73,8 +73,16 @@ export class GameState {
         if (this.score > this.highScore) {
             this._highScore = this.score;
             this._setItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, this.score);
-            // TODO: add clearing the high score to control panel
         }
+    }
+
+    /**
+     * Resets the high score to 0 and persists this change to localStorage.
+     * This operation cannot be undone.
+     */
+    clearHighScore() {
+        this._highScore = 0;
+        this._setItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, 0);
     }
 
     /**

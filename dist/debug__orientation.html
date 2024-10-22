@@ -1,227 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Device Orientation Debug</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding: 20px;
+            height: 100vh;
+            margin: 0;
             background-color: #f0f0f0;
         }
-        #orientationData, #errorMessage {
-            margin: 20px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            width: 80%;
-            max-width: 400px;
+        .container {
             background-color: white;
-        }
-        #directionOutput {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 5px;
-            width: 150px;
-            height: 150px;
-            margin: 20px 0;
-        }
-        .arrow {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #E8F5E9;
-            border: 2px solid #4CAF50;
-            border-radius: 5px;
-            font-size: 24px;
-            color: #2E7D32;
-            transition: all 0.3s ease;
-        }
-        .arrow.active {
-            background-color: #4CAF50;
-            color: white;
-            transform: scale(1.1);
-        }
-        #up { grid-area: 1 / 2 / 2 / 3; }
-        #left { grid-area: 2 / 1 / 3 / 2; }
-        #right { grid-area: 2 / 3 / 3 / 4; }
-        #down { grid-area: 3 / 2 / 4 / 3; }
-        #directionText {
-            grid-area: 2 / 2 / 3 / 3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #2E7D32;
-            text-transform: uppercase;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
         }
         #errorMessage {
             color: red;
-            display: none;
+            margin-top: 10px;
         }
-        button {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
+        #requestPermission {
+            margin-top: 10px;
+            padding: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            display: none;
         }
-        button:hover {
+        #requestPermission:hover {
             background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>Device Orientation Debug</h1>
-    <div id="orientationData">
-        <p>Alpha: <span id="alpha"></span></p>
-        <p>Beta: <span id="beta"></span></p>
-        <p>Gamma: <span id="gamma"></span></p>
+    <div class='container'>
+        <h1>Device Orientation Debug</h1>
+        <div id='motionIndicator'></div>
+        <div id='errorMessage'></div>
+        <button id='requestPermission'>Request Permission</button>
     </div>
-    <div id="directionOutput">
-        <div id="up" class="arrow">↑</div>
-        <div id="left" class="arrow">←</div>
-        <div id="right" class="arrow">→</div>
-        <div id="down" class="arrow">↓</div>
-        <div id="directionText"></div>
-    </div>
-    <div id="errorMessage"></div>
-    <button id="requestPermission">Request Permission</button>
-    <script>
-        (function() {
-            const alphaElement = document.getElementById('alpha');
-            const betaElement = document.getElementById('beta');
-            const gammaElement = document.getElementById('gamma');
-            const directionElement = document.getElementById('direction');
-            const errorMessageElement = document.getElementById('errorMessage');
-            const requestPermissionButton = document.getElementById('requestPermission');
-            const directionTextElement = document.getElementById('directionText');
-            const arrows = {
-                up: document.getElementById('up'),
-                down: document.getElementById('down'),
-                left: document.getElementById('left'),
-                right: document.getElementById('right')
-            };
-
-            let inputHandler;
-            let currentDirection = 'None';
-            let lastOrientation = { beta: 0, gamma: 0 };
-            const MOTION_SENSITIVITY = 15;  // should match GAME_CONFIG.INPUT.MOTION_SENSITIVITY
-
-            function showError(message) {
-                errorMessageElement.textContent = message;
-                errorMessageElement.style.display = 'block';
-            }
-
-            function initializeInput() {
-                // mock implementation
-                inputHandler = {
-                    _handleDeviceMovement: handleDeviceMovement
-                };
-            }
-
-            function updateDirection(newDirection) {
-                if (newDirection !== currentDirection) {
-                    // deactivate previous direction
-                    if (currentDirection !== 'None' && arrows[currentDirection]) {
-                        arrows[currentDirection].classList.remove('active');
-                    }
-
-                    // activate new direction
-                    currentDirection = newDirection;
-                    if (arrows[newDirection]) {
-                        arrows[newDirection].classList.add('active');
-                        setTimeout(() => arrows[newDirection].classList.remove('active'), 300);
-                    }
-
-                    // update direction text
-                    directionTextElement.textContent = newDirection;
-                }
-            }
-
-            // BEGIN: InputHandler copy-pasted logic
-
-            function handleDeviceMovement(event) {
-                const { beta, gamma } = event;
-                const orientationChange = {
-                    beta: lastOrientation.beta - beta,
-                    gamma: lastOrientation.gamma - gamma
-                };
-
-                if (isSignificantMotion(orientationChange)) {
-                    const direction = getDirectionFromOrientation(orientationChange);
-                    if (direction) {
-                        updateDirection(direction);
-                    }
-                    lastOrientation = { beta, gamma };
-                }
-            }
-
-            function isSignificantMotion(orientationChange) {
-                return Math.abs(orientationChange.beta) > MOTION_SENSITIVITY ||
-                       Math.abs(orientationChange.gamma) > MOTION_SENSITIVITY;
-            }
-
-            function getDirectionFromOrientation(orientationChange) {
-                if (Math.abs(orientationChange.beta) > Math.abs(orientationChange.gamma)) {
-                    return orientationChange.beta < -MOTION_SENSITIVITY ? 'down' :
-                           orientationChange.beta > MOTION_SENSITIVITY ? 'up' : null;
-                } else {
-                    return orientationChange.gamma < -MOTION_SENSITIVITY ? 'right' :
-                           orientationChange.gamma > MOTION_SENSITIVITY ? 'left' : null;
-                }
-            }
-
-            // END: InputHandler copy-pasted logic
-
-            function handleOrientation(event) {
-                alphaElement.textContent = event.alpha ? event.alpha.toFixed(2) : 'null';
-                betaElement.textContent = event.beta ? event.beta.toFixed(2) : 'null';
-                gammaElement.textContent = event.gamma ? event.gamma.toFixed(2) : 'null';
-
-                if (inputHandler && typeof inputHandler._handleDeviceMovement === 'function') {
-                    inputHandler._handleDeviceMovement(event);
-                } else {
-                    showError("InputHandler not properly initialized.");
-                }
-            }
-
-            function requestOrientationPermission() {
-                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(response => {
-                            if (response === 'granted') {
-                                window.addEventListener('deviceorientation', handleOrientation);
-                                requestPermissionButton.style.display = 'none';
-                            }
-                        })
-                        .catch(console.error);
-                } else {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                    requestPermissionButton.style.display = 'none';
-                }
-            }
-
-            requestPermissionButton.addEventListener('click', requestOrientationPermission);
-
-            // initialize mock implementation of InputHandler
-            initializeInput();
-
-            // check if permission is needed
-            if (typeof DeviceOrientationEvent === 'undefined' || typeof DeviceOrientationEvent.requestPermission !== 'function') {
-                requestOrientationPermission();
-            }
-        })();
-    </script>
+    <script src='debug__orientation.min.js'></script>
 </body>
 </html>

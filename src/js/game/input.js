@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../config';
 import { DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_UP } from '../direction';
+import { calculateMotionControl } from '../motion';
 
 const { INPUT } = GAME_CONFIG;
 
@@ -10,7 +11,7 @@ const UP_KEY = 'ArrowUp';
 const DOWN_KEY = 'ArrowDown';
 
 /**
- * global to persist permission state across game sessions.
+ * global var to persist permission state across game sessions.
  * possible values: 'unknown', 'requesting', 'granted', 'denied'
  * */
 let motionPermissionState = 'unknown';
@@ -24,12 +25,8 @@ export class InputHandler {
      */
     constructor(game) {
         this._game = game;
-        this._motionAvailable = null;
-        this._deviceOrientation = {
-            beta: 0,  // rotation around x-axis (-180 to 180)
-            gamma: 0  // rotation around y-axis (-90 to 90)
-        };
-        this._lastOrientationUpdate = 0;
+        this._lastOrientation = null;
+        this._lastOrientationUpdateTime = 0;
         this._touchStart = { x: 0, y: 0 };
         this._touchEnd = { x: 0, y: 0 };
         this._boundMethods = this._bindMethods();
@@ -73,7 +70,7 @@ export class InputHandler {
      */
     manageRestartControls(shouldAdd) {
         const action = shouldAdd ? 'addEventListener' : 'removeEventListener';
-        if (shouldAdd && !this._motionAvailable) {
+        if (shouldAdd && !this._game.motionControl.active) {
             // remove existing keyboard listener to avoid conflicts with new restart controls
             document.removeEventListener('keydown', this._boundMethods.handleKeyInput);
         }
@@ -154,6 +151,7 @@ export class InputHandler {
     _createMotionRequestButton() {
         let btn = this._game.board.createMotionRequestButton();
         if (btn) {
+            btn.classList.add('show');
             btn.addEventListener('click', this._boundMethods.requestDeviceOrientation);
 
             // give user time to grant permission
@@ -181,7 +179,8 @@ export class InputHandler {
 
         const commandFn = keyCommands[event.code];
         if (commandFn) {
-            if (this._motionAvailable === null && !this._game.state.ended) {
+            // TODO: do i need the old `!this._game.state.ended` check?
+            if (this._game.motionControl.active === null) {
                 console.log('key controls activated');
             }
 
@@ -223,35 +222,51 @@ export class InputHandler {
      * @private
      */
     _handleDeviceMovement(event) {
-        const now = Date.now();
-
+        const currentUpdateTime = Date.now();
         const currentOrientation = {
             beta: event.beta || 0,
             gamma: event.gamma || 0
         }
 
-        // ensure we're not updating too frequently / causing jerkiness
-        if (now - this._lastOrientationUpdate < INPUT.MOTION_THROTTLE_TIME_MS) {
-            return;
+        if (!this._lastOrientation) {
+            this._lastOrientation = { ...currentOrientation };
         }
 
-        const orientationChange = {
-            beta: this._deviceOrientation.beta - currentOrientation.beta,
-            gamma: this._deviceOrientation.gamma - currentOrientation.gamma
-        }
+        const direction = calculateMotionControl(
+            currentOrientation,
+            this._lastOrientation,
+            currentUpdateTime,
+            this._lastOrientationUpdateTime
+        );
 
-        // check if this is the first significant movement detected
-        // used to determine when to switch from keyboard to motion controls
-        if (this._motionAvailable === null && this._isSignificantMotion(orientationChange)) {
-            this._activateMotionControl();
-        }
+        // if (direction && isSignificantMotion(orientationChange)) {
+        //     // check if this is the first significant movement detected
+        //     // used to determine when to switch from keyboard to motion controls
+        //     if (this._motionAvailable === null) {
+        //         this._activateMotionControl();
+        //     }
 
-        const direction = this._getDirectionFromOrientation(orientationChange);
+        //     this._game.snake.changeDirection(direction);
+        //     this._lastOrientation = currentOrientation;
+        // }
+
         if (direction) {
+            // used to determine when to switch from keyboard to motion controls
+            if (this._game.motionControl.active === null) {
+                this._activateMotionControl();
+            }
+
             this._game.snake.changeDirection(direction);
-            this._lastOrientationUpdate = now;
-            this._deviceOrientation = currentOrientation;
+            this._lastOrientationUpdateTime = currentUpdateTime;
+            this._lastOrientation = currentOrientation;
         }
+
+        // update motion control state
+        this._game.updateMotionControl(
+            currentOrientation,
+            this._game.snake.getCurrentDirection(),
+            1  // TODO: sensitivity
+        );
     }
 
     /**
@@ -323,43 +338,6 @@ export class InputHandler {
     }
 
     /**
-     * Determines if a change in device orientation is significant enough to trigger a direction change.
-     * Filters out small, unintentional device movements so we respond only to deliberate motions.
-     * @param {Object} orientationChange - change in device orientation
-     * @param {number} orientationChange.beta - change in beta (x-axis rotation) in degrees
-     * @param {number} orientationChange.gamma - change in gamma (y-axis rotation) in degrees
-     * @returns {boolean} true if the motion is considered significant; false otherwise
-     * @private
-     */
-    _isSignificantMotion(orientationChange) {
-        return Math.abs(orientationChange.beta) > INPUT.MOTION_SENSITIVITY ||
-               Math.abs(orientationChange.gamma) > INPUT.MOTION_SENSITIVITY;
-    }
-
-    /**
-     * Determine direction based on orientation change.
-     * @param {{ beta: number, gamma: number }} orientationChange - the change in device orientation
-     * @returns {string | null} determined direction or null
-     * @private
-     */
-    _getDirectionFromOrientation(orientationChange) {
-        if (Math.abs(orientationChange.beta) > Math.abs(orientationChange.gamma)) {
-            if (orientationChange.beta < -INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_DOWN;
-            } else if (orientationChange.beta > INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_UP;
-            }
-        } else {
-            if (orientationChange.gamma < -INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_RIGHT;
-            } else if (orientationChange.gamma > INPUT.MOTION_SENSITIVITY) {
-                return DIRECTION_LEFT;
-            }
-        }
-        return null;
-    }
-
-    /**
      * Request device orientation permission.
      * @private
      */
@@ -392,8 +370,7 @@ export class InputHandler {
         window.addEventListener('deviceorientation', this._boundMethods.handleDeviceMovement);
 
         this._game.board.removeMotionRequestButton();
-        this._game.state.setSpeed(INPUT.GAME_SPEED_MS__MOTION);
-        this._motionAvailable = true;
+        this._game.activateMotionControl();
 
         console.log('motion controls activated');
     }
@@ -405,8 +382,7 @@ export class InputHandler {
     _deactivateMotionControl() {
         this._game.board.removeMotionRequestButton();
         window.removeEventListener('deviceorientation', this._handleDeviceMovement);
-        this._game.state.setSpeed(INPUT.GAME_SPEED_MS__ARROW);
-        this._motionAvailable = false;
+        this._game.deactivateMotionControl();
     }
 
     /**
@@ -417,9 +393,9 @@ export class InputHandler {
      */
     _debugMotionControl() {
         console.log('motion control debug info', {
-            motionAvailable: this._motionAvailable,
+            motionControlActive: this._game.motionControl.active,
             motionPermissionState: motionPermissionState,
-            deviceOrientation: this._deviceOrientation,
+            deviceOrientation: this._lastOrientation,
             isChangingDirection: this._game.snake._isChangingDirection,
             snakeDirection: this._game.snake.getCurrentDirection()
         });

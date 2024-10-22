@@ -4,14 +4,28 @@
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
         <title>SNEK</title>
-        <link href='https://fonts.googleapis.com/css?family=Saira' rel='stylesheet'>
         <link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>'>
-        <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css' rel='stylesheet'>
+        <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Saira&display=swap'>
+        <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css'>
+        <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'>
         <link rel='stylesheet' href='snek.css'>
     </head>
     <body>
-        <div id='controlPanel'></div>
-        <canvas id='gameCanvas' width='300' height='250'>sorry, canvas is not supported by your browser</canvas>
+        <div id='gameContainer'>
+            <div id='controlPanel'>
+                <button type='button' id='motionRequest' title='Allow Motion'>
+                    <i class='fas fa-compass'></i>
+                </button>
+                <button type='button' id='motionIndicatorToggle' title='Motion Guide'>
+                    <i class='fas fa-location-crosshairs'></i>
+                </button>
+                <button type='button' id='clearHighScore' title='Clear High Score'>
+                    <i class='fas fa-eraser'></i>
+                </button>
+            </div>
+            <canvas id='gameCanvas' width='300' height='250'>sorry, canvas is not supported by your browser</canvas>
+        </div>
+        <div id='motionIndicator'></div>
         <script type='module' src='snek.min.js'></script>
     </body>
 </html>
