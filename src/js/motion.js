@@ -22,6 +22,7 @@ export class MotionControlIndicator {
             ...options
         };
         this._create();
+        this._initialOrientation = null;
     }
 
     /**
@@ -32,10 +33,25 @@ export class MotionControlIndicator {
      */
     // update(orientation, direction, sensitivity) {
     update(orientation, direction) {
+        // initialize reference point if not set
+        if (!this._initialOrientation) {
+            this._initialOrientation = {
+                beta: orientation.beta,
+                gamma: orientation.gamma
+            };
+            return; // skip first update to maintain center position
+        }
+
         const { beta, gamma } = orientation;
         const maxTilt = 30;
-        const tiltX = Math.min(Math.max(gamma, -maxTilt), maxTilt) / maxTilt;
-        const tiltY = Math.min(Math.max(beta, -maxTilt), maxTilt) / maxTilt;
+
+        // calculate relative tilt from initial position
+        const relativeBeta = beta - this._initialOrientation.beta;
+        const relativeGamma = gamma - this._initialOrientation.gamma;
+
+        // clamp the relative values to our maximum tilt range
+        const tiltX = Math.min(Math.max(relativeGamma, -maxTilt), maxTilt) / maxTilt;
+        const tiltY = Math.min(Math.max(relativeBeta, -maxTilt), maxTilt) / maxTilt;
 
         const dotPx = this.options.position === 'corner' ? 40 : 60;
         if (this.dot instanceof HTMLDivElement) {
@@ -228,6 +244,7 @@ export class MotionControlIndicator {
     export function calculateMotionControl(currentOrientation, initialOrientation, lastOrientation, currentUpdateTime, lastUpdateTime) {
     if (!initialOrientation) {
         // return { direction: null, sensitivity: sensitivityMultiplier };
+        // return null on first update to prevent immediate movement
         return null;
     }
 
@@ -238,10 +255,10 @@ export class MotionControlIndicator {
     }
 
     // calculate change relative to initial orientation
-    const totalChange = {
-        beta: currentOrientation.beta - initialOrientation.beta,
-        gamma: currentOrientation.gamma - initialOrientation.gamma
-    };
+    // const totalChange = {
+    //     beta: currentOrientation.beta - initialOrientation.beta,
+    //     gamma: currentOrientation.gamma - initialOrientation.gamma
+    // };
 
     // calculate change since last update
     const recentChange = {
