@@ -44,7 +44,6 @@ export class Game {
         *   active: boolean | null,
         *   orientation: { beta: number, gamma: number },
         *   direction: string | null,
-        *   sensitivity: number,
         *   indicatorVisible: boolean
         * }}
         */
@@ -52,7 +51,6 @@ export class Game {
             active: null,
             orientation: { beta: 0, gamma: 0 },
             direction: null,
-            sensitivity: 1,
             indicatorVisible: motionIndicatorVisible
         };
 
@@ -248,17 +246,15 @@ export class Game {
     }
 
     /**
-     * Updates the motion control state with new orientation, direction, and sensitivity values.
+     * Updates the motion control state with new orientation and direction values.
      * If motion control is not already active, this will activate it.
      * Also updates the motion indicator UI if it's visible.
      *
      * @param {{ beta: number, gamma: number }} orientation - current device orientation angles
      * @param {string|null} direction - current movement direction of the snake ('left', 'right', 'up', 'down', or null)
-     * @param {number} sensitivity - current sensitivity multiplier for motion controls
      */
-    updateMotionControl(orientation, direction, sensitivity) {
+    updateMotionControl(orientation, direction) {
         this.motionControl.orientation = orientation;
-        this.motionControl.sensitivity = sensitivity;
         if (direction) {
             this.motionControl.direction = direction;
         }
@@ -268,7 +264,7 @@ export class Game {
         }
 
         if (this.motionIndicator && this.motionControl.indicatorVisible) {
-            this.motionIndicator.update(orientation, direction, sensitivity);
+            this.motionIndicator.update(orientation, direction);
         }
     }
 

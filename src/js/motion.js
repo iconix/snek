@@ -26,11 +26,10 @@ export class MotionControlIndicator {
 
     /**
      * Updates the motion control indicator based on the current orientation and direction.
-     * @param {{ beta: number, gamma: number }} orientation - The current device orientation.
-     * @param {string|null} direction - The current direction of movement (UP, DOWN, LEFT, RIGHT, or null).
-     * @param {number} sensitivity - The current sensitivity of the motion controls.
+     * @param {{ beta: number, gamma: number }} orientation - current device orientation
+     * @param {string|null} direction - current direction of movement (UP, DOWN, LEFT, RIGHT, or null)
      */
-    update(orientation, direction, sensitivity) {
+    update(orientation, direction) {
         const { beta, gamma } = orientation;
         const maxTilt = 30;
         const tiltX = Math.min(Math.max(gamma, -maxTilt), maxTilt) / maxTilt;
@@ -64,9 +63,6 @@ export class MotionControlIndicator {
         }
 
         if (this.options.showInfo) {
-            if (this.sensitivityValue instanceof HTMLSpanElement) {
-                this.sensitivityValue.textContent = sensitivity.toFixed(2);
-            }
             if (this.betaValue instanceof HTMLSpanElement) {
                 this.betaValue.textContent = beta.toFixed(2);
             }
@@ -111,7 +107,6 @@ export class MotionControlIndicator {
                 ${this.options.showInfo ? `
                 <div class="info">
                     <p>Direction: <span class="direction-value">None</span></p>
-                    <p>Sensitivity: <span class="sensitivity-value">1.00</span></p>
                     <p>Beta: <span class="beta-value">0.00</span>°</p>
                     <p>Gamma: <span class="gamma-value">0.00</span>°</p>
                 </div>
@@ -122,7 +117,6 @@ export class MotionControlIndicator {
         this.dot = this.container.querySelector('.dot');
         this.arrows = this.container.querySelectorAll('.arrow');
         this.directionValue = this.container.querySelector('.direction-value');
-        this.sensitivityValue = this.container.querySelector('.sensitivity-value');
         this.betaValue = this.container.querySelector('.beta-value');
         this.gammaValue = this.container.querySelector('.gamma-value');
 
@@ -233,42 +227,7 @@ export function calculateMotionControl(currentOrientation, lastOrientation, curr
         gamma: currentOrientation.gamma - lastOrientation.gamma
     };
 
-    const direction = isSignificantMotion(recentChange) ? getDirectionFromOrientation(recentChange) : null;
-    return direction;
-
-    // if (!initialOrientation) {
-    //     return { direction: null, sensitivity: 1, orientationChange: { beta: 0, gamma: 0 } };
-    // }
-
-    // // calculate change relative to initial orientation
-    // const totalChange = {
-    //     beta: currentOrientation.beta - initialOrientation.beta,
-    //     gamma: currentOrientation.gamma - initialOrientation.gamma
-    // };
-
-    // // calculate change since last update
-    // const recentChange = {
-    //     beta: currentOrientation.beta - lastOrientation.beta,
-    //     gamma: currentOrientation.gamma - lastOrientation.gamma
-    // };
-
-    // // update sensitivity based on total change from initial position
-    // const magnitudeChange = Math.sqrt(totalChange.beta ** 2 + totalChange.gamma ** 2);
-    // const newSensitivityMultiplier = 1 + (magnitudeChange / 45);
-
-    // // apply deadzone to recent change
-    // const adjustedDeadzone = INPUT.MOTION_DEADZONE / newSensitivityMultiplier;
-    // if (Math.abs(recentChange.beta) <= adjustedDeadzone) recentChange.beta = 0;
-    // if (Math.abs(recentChange.gamma) <= adjustedDeadzone) recentChange.gamma = 0;
-
-    // // determine dominant direction based on recent change
-    // const direction = getDirectionFromOrientation(recentChange);
-
-    // return {
-    //     direction,
-    //     sensitivity: newSensitivityMultiplier,
-    //     orientationChange: recentChange
-    // };
+    return isSignificantMotion(recentChange) ? getDirectionFromOrientation(recentChange) : null;
 }
 
 /**

@@ -289,7 +289,7 @@ export class Board {
 
     /**
      * Calculates the size of the game board.
-     * @returns {number} The calculated board size.
+     * @returns {number} calculated board size
      * @private
      */
     _calculateBoardSize() {
@@ -329,11 +329,11 @@ export class Board {
 
     /**
      * Creates or retrieves a button in the control panel.
-     * @param {string} id - The ID of the button.
-     * @param {string} text - The text content of the button.
-     * @param {Object} [options={}] - Additional options for the button.
-     * @param {string} [options.style] - Inline CSS styles for the button.
-     * @returns {HTMLButtonElement|null} The created or existing button, or null if the control panel doesn't exist.
+     * @param {string} id - ID of the button
+     * @param {string} text - text content of the button
+     * @param {Object} [options={}] - additional options for the button
+     * @param {string} [options.style] - inline CSS styles for the button
+     * @returns {HTMLButtonElement|null} created or existing button, or null if the control panel doesn't exist
      * @private
      */
     _createOrGetButton(id, text, options = {}) {
@@ -353,8 +353,8 @@ export class Board {
 
     /**
      * Retrieves a button from the DOM by its ID.
-     * @param {string} id - The ID of the button to retrieve.
-     * @returns {HTMLButtonElement|null} The button if it exists and is a button element, otherwise null.
+     * @param {string} id - ID of the button to retrieve
+     * @returns {HTMLButtonElement|null} button if it exists and is a button element; otherwise null
      * @private
      */
     _getButton(id) {

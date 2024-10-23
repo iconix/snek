@@ -179,7 +179,6 @@ export class InputHandler {
 
         const commandFn = keyCommands[event.code];
         if (commandFn) {
-            // TODO: do i need the old `!this._game.state.ended` check?
             if (this._game.motionControl.active === null) {
                 console.log('key controls activated');
             }
@@ -239,17 +238,6 @@ export class InputHandler {
             this._lastOrientationUpdateTime
         );
 
-        // if (direction && isSignificantMotion(orientationChange)) {
-        //     // check if this is the first significant movement detected
-        //     // used to determine when to switch from keyboard to motion controls
-        //     if (this._motionAvailable === null) {
-        //         this._activateMotionControl();
-        //     }
-
-        //     this._game.snake.changeDirection(direction);
-        //     this._lastOrientation = currentOrientation;
-        // }
-
         if (direction) {
             // used to determine when to switch from keyboard to motion controls
             if (this._game.motionControl.active === null) {
@@ -261,11 +249,9 @@ export class InputHandler {
             this._lastOrientation = currentOrientation;
         }
 
-        // update motion control state
         this._game.updateMotionControl(
             currentOrientation,
-            this._game.snake.getCurrentDirection(),
-            1  // TODO: sensitivity
+            this._game.snake.getCurrentDirection()
         );
     }
 

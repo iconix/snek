@@ -74,7 +74,7 @@ function initDebugPage() {
             lastOrientation = currentOrientation;
         }
 
-        indicator.update(currentOrientation, snakeDirection, 1 /* TODO: sensitivity */);
+        indicator.update(currentOrientation, snakeDirection);
     }
 
     function showError(message) {
