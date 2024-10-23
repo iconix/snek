@@ -1,9 +1,9 @@
-import { MotionControlIndicator, calculateMotionControl, isSignificantMotion } from './motion';
+import { MotionControlIndicator, calculateMotionControl } from './motion';
 
 function initDebugPage() {
     const container = document.getElementById('motionIndicator');
-    if (!container) {
-        console.error('Motion indicator container not found');
+    if (!(container instanceof HTMLDivElement)) {
+        console.error('motion indicator container not found');
         return;
     }
 
@@ -14,18 +14,22 @@ function initDebugPage() {
 
     let initialOrientation = null;
     let lastOrientation = null;
+    let lastOrientationUpdateTime = null;
+    let snakeDirection = null;
     let sensitivityMultiplier = 1;
 
     if (window.DeviceOrientationEvent) {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             const button = document.getElementById('requestPermission');
-            button.style.display = 'block';
-            button.addEventListener('click', requestOrientationPermission);
+            if (button instanceof HTMLButtonElement) {
+                button.style.display = 'block';
+                button.addEventListener('click', requestOrientationPermission);
+            }
         } else {
             window.addEventListener('deviceorientation', handleOrientation);
         }
     } else {
-        showError("Sorry, your browser doesn't support Device Orientation");
+        showError("sorry, your browser doesn't support Device Orientation");
     }
 
     function requestOrientationPermission() {
@@ -34,15 +38,20 @@ function initDebugPage() {
                 if (permissionState === 'granted') {
                     window.addEventListener('deviceorientation', handleOrientation);
                     hideError();
-                    document.getElementById('requestPermission').style.display = 'none';
+
+                    const button = document.getElementById('requestPermission');
+                    if (button instanceof HTMLButtonElement) {
+                        button.style.display = 'none';
+                    }
                 } else {
-                    showError('Permission to access device orientation was denied.');
+                    showError('permission to access device orientation was denied.');
                 }
             })
             .catch(console.error);
     }
 
     function handleOrientation(event) {
+        const currentUpdateTime = Date.now();
         const currentOrientation = {
             beta: event.beta || 0,
             gamma: event.gamma || 0
@@ -53,23 +62,24 @@ function initDebugPage() {
             lastOrientation = { ...currentOrientation };
         }
 
-        const { direction, sensitivity, orientationChange } = calculateMotionControl(
+        const { direction, sensitivity } = calculateMotionControl(
             currentOrientation,
-            initialOrientation,
             lastOrientation,
-            sensitivityMultiplier
+            currentUpdateTime,
+            lastOrientationUpdateTime
         );
 
         sensitivityMultiplier = sensitivity;
 
-        if (direction && isSignificantMotion(orientationChange, sensitivityMultiplier)) {
-            // in the game, this is where we would change the snake's direction
-            console.log('Direction change:', direction);
+        if (direction) {
+            snakeDirection = direction;
+            console.log('direction changed:', snakeDirection);
+
+            lastOrientationUpdateTime = currentUpdateTime;
+            lastOrientation = currentOrientation;
         }
 
-        indicator.update(currentOrientation, direction, sensitivityMultiplier);
-
-        lastOrientation = currentOrientation;
+        indicator.update(currentOrientation, snakeDirection, sensitivityMultiplier);
     }
 
     function showError(message) {

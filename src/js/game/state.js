@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from '../config';
 
-const { INPUT, STATE } = GAME_CONFIG;
+const { GAME, STATE } = GAME_CONFIG;
 
 /**
  * Represents the state of the game.
@@ -15,7 +15,7 @@ export class GameState {
         // values
         this._score = 0;
         this._highScore = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, 0);
-        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, INPUT.GAME_SPEED_MS__ARROW);
+        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, GAME.SPEED_MS__ARROW);
     }
 
     /**
@@ -73,8 +73,16 @@ export class GameState {
         if (this.score > this.highScore) {
             this._highScore = this.score;
             this._setItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, this.score);
-            // TODO: add clearing the high score to control panel
         }
+    }
+
+    /**
+     * Resets the high score to 0 and persists this change to localStorage.
+     * This operation cannot be undone.
+     */
+    clearHighScore() {
+        this._highScore = 0;
+        this._setItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, 0);
     }
 
     /**

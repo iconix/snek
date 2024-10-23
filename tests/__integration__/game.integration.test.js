@@ -5,7 +5,7 @@ import { Snake } from '../../src/js/snake';
 import { Food, Teleport, Phase } from '../../src/js/item';
 import { GAME_CONFIG } from '../../src/js/config';
 
-const { GAME, INPUT } = GAME_CONFIG;
+const { GAME } = GAME_CONFIG;
 
 describe('Game Integration Tests', () => {
     let game, canvas, ctrlPanel;
@@ -156,22 +156,22 @@ describe('Game Integration Tests', () => {
     test('Game should pause and resume correctly', () => {
         const initialSnakePosition = game.snake.getHeadPosition();
 
-        // Pause the game
+        // pause the game
         game.togglePause();
 
-        // Try to update the frame
+        // try to update the frame
         game._updateFrame();
 
-        // Snake position should not change
+        // snake position should not change
         expect(game.snake.getHeadPosition()).toEqual(initialSnakePosition);
 
-        // Resume the game
+        // resume the game
         game.togglePause();
 
-        // Update the frame
+        // update the frame
         game._updateFrame();
 
-        // Snake position should now change
+        // snake position should now change
         expect(game.snake.getHeadPosition()).not.toEqual(initialSnakePosition);
     });
 
@@ -182,7 +182,7 @@ describe('Game Integration Tests', () => {
         game.state.updateScore(GAME.SCORE_INCREMENT * 10);
 
         // Update game speed
-        game.state.setSpeed(INPUT.GAME_SPEED_MS__ARROW - 50);  // Assume speed increases with score
+        game.state.setSpeed(GAME.SPEED_MS__ARROW - 50);  // Assume speed increases with score
 
         expect(game.state.speed).toBeLessThan(initialSpeed);
     });

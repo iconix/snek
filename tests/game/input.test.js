@@ -41,7 +41,7 @@ function createMockTouch(x, y) {
 }
 
 describe('InputHandler', () => {
-    let mockCanvas, mockControlPanel;
+    let mockCanvas, mockControlPanel, mockMotionIndicator;
     let inputHandler, mockBoard, mockItem, mockSnake, mockGame;
     let changeDirectionSpy, exitFullScreenSpy, restartSpy, togglePauseSpy;
 
@@ -50,14 +50,18 @@ describe('InputHandler', () => {
         mockControlPanel.id = 'controlPanel';
         mockCanvas = document.createElement('canvas');
         mockCanvas.id = 'gameCanvas';
+        mockMotionIndicator = document.createElement('div');
+        mockMotionIndicator.id = 'motionIndicator';
 
         document.body.appendChild(mockControlPanel);
         document.body.appendChild(mockCanvas);
+        document.body.appendChild(mockMotionIndicator);
     });
 
     afterAll(() => {
         document.body.removeChild(mockControlPanel);
         document.body.removeChild(mockCanvas);
+        document.body.removeChild(mockMotionIndicator);
     });
 
     beforeEach(() => {

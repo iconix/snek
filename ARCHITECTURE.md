@@ -23,24 +23,26 @@ This document outlines the architecture of this `snek` game implementation. The 
                            |
                            | (used by all)
                            v
-  +------------+     +------------+     +------------+
-  | InputHandler|<--->|    Game    |<--->| GameState  |
-  +------------+     +------------+     +------------+
-                           ^  ^
-                           |  |
-                    +------+  +------+
-                    |               |
-              +------------+  +------------+
-              |   Board    |  |   Snake    |
-              +------------+  +------------+
-                    ^               ^
-                    |               |
-                    +---------------+
+                    +------------+
+                    |   Canvas   |
+                    +------------+
+                           ^
+                           | (used by all)
                            |
-                           v
-                    +------------+
-                    |    Item    |
-                    +------------+
+  +------------+     +------------+     +------------+
+  | InputHandler|---->|    Game    |<--->| GameState  |
+  +------------+     +------------+     +------------+
+                      |      |      |
+                      |      |      |
+                      v      v      v
+           +------------+    |    +------------+
+           |   Board    |    |    |   Snake    |
+           +------------+    |    +------------+
+                 ^           |        ^
+                 |           v        |
+                 |   +------------+   |
+                 ----|    Item    |<---
+                     +------------+
                            ^
                            |
               +------------+------------+
@@ -50,7 +52,7 @@ This document outlines the architecture of this `snek` game implementation. The 
         +------------+------------+------------+
 ```
 
-This diagram illustrates the main components of the game and their relationships. The Game class acts as the central coordinator, interacting with InputHandler, GameState, Board, Snake, and Item classes. The Config module is used by all components for game settings.
+This diagram illustrates the main components of the game and their relationships. The Game class acts as the central coordinator, managing Board, Snake, and Item components. It receives input from InputHandler and reads/updates game state through GameState. Both Config and Canvas act as core services - Config provides settings used by all components, while Canvas handles rendering for all game components. The diagram also shows necessary direct relationships between components, such as Board and Snake interactions with Item for positioning and collision detection.
 
 ### 1. Game
 
@@ -60,21 +62,22 @@ Key responsibilities:
 - Initializing the game board, snake, and items
 - Running the game loop
 - Handling game state (pause, restart, end)
-- Coordinating updates to snake position and item generation
+- Coordinating updates to snake position, item generation, and item consumption
 
 ### 2. Board
 
-The `Board` class represents the game board. It manages the canvas element and provides methods for drawing game elements.
+The `Board` class represents the game board. It manages the game's Canvas configuration and UI state.
 
 Key responsibilities:
-- Managing canvas size and scaling
-- Providing drawing context for other components
-- Handling board-specific visual effects (glow, filters)
-- Managing fullscreen mode
+- Managing canvas size, scaling, and dimensions
+- Providing board dimensions and block size information
+- Managing board visual state (colors, filters, glow effects)
+- Controlling fullscreen mode
+- Managing UI elements in the control panel
 
 ### 3. Snake
 
-The `Snake` class represents the player-controlled snake in the game.
+The `Snake` class represents the user-controlled snek in the game.
 
 Key responsibilities:
 - Managing snake movement and growth
@@ -87,16 +90,16 @@ Key responsibilities:
 The `Item` class (and its subclasses like `Food`, `Teleport`, and `Phase`) represent the various items that can appear on the game board.
 
 Key responsibilities:
-- Generating new items at random positions
-- Defining item-specific properties and behaviors
-- Handling item consumption effects
+- Generating valid random positions using Board dimensions and Snake position
+- Providing item position and basic property interfaces
+- Defining item type-specific visual properties and behaviors
 
 ### 5. InputHandler
 
-The `InputHandler` class manages user input for controlling the game.
+The `InputHandler` class manages all user input for controlling the game.
 
 Key responsibilities:
-- Handling keyboard, touch, and motion controls
+- Handling keyboard, touch, and motion control schemes
 - Managing event listeners for different game states
 - Translating user input into game actions
 
@@ -132,26 +135,29 @@ Key responsibilities:
 
 ## Component Interactions
 
-1. The `Game` class initializes all other components (`Board`, `Snake`, `Item`, `InputHandler`, `GameState`).
+1. `Config` and `Canvas` are core services:
+   - All components access `Config` for game settings
+   - All game components use `Canvas` for rendering
 
-2. In each frame of the game loop:
-   - `Game` checks with `GameState` to determine if it should update.
-   - If updating, `Game` tells `Snake` to move.
-   - `Game` checks for collisions between `Snake` and `Item` or board boundaries.
-   - `Game` updates `GameState` (score, etc.) based on these interactions.
-   - `Game` uses `Board` and `Canvas` functions to render the current state.
+2. The `Game` class acts as the central coordinator:
+   - Creates and manages `Board`, `Snake`, and `Item` instances
+   - Receives input from `InputHandler`
+   - Maintains bidirectional communication with `GameState` for reading and updating score and game conditions
+   - Coordinates game loop and component updates
 
-3. `InputHandler` listens for user input and communicates with `Game` to change snake direction or toggle game state (pause/resume).
-
-4. When `Snake` consumes an `Item`, `Game` is notified, updates the score in `GameState`, and generates a new `Item`.
-
-5. All components refer to `config.js` for game settings, allowing for easy adjustment of game parameters.
+3. Component-specific interactions:
+   - `Board` provides dimensional information to `Item` for placement
+   - `Snake` interacts with `Item` for collision detection and power-up effects. `Item` uses `Snake` for positioning.
+   - `InputHandler` communicates directional changes and game controls to `Game`
+   - `Item` subclasses (`Food`, `Teleport`, `Phase`) inherit base item behavior
 
 ## Data Flow
 
-1. User Input → InputHandler → Game → Snake
-2. Game Loop → Game → Snake/Item/Board → GameState
-3. Game State Changes → Game → Board/Canvas (for rendering)
+1. User Input → InputHandler → Game
+    - Game then updates appropriate components (Snake direction, GameState pause, etc.)
+2. Game Loop → Game → Board/Snake/Item updates
+3. Game ↔ GameState
+4. Game → All Components → Canvas (for rendering)
 
 ## Extensibility
 

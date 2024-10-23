@@ -16,6 +16,7 @@ var banner = `/*! ${configs.name ? configs.name : pkg.name} v${pkg.version} | (c
 
 var createOutput = function (filename, minify) {
 	if (filename === 'main') {
+		// special case for game entry point
 		filename = 'snek';
 	}
 
