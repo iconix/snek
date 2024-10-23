@@ -25,7 +25,10 @@ export class InputHandler {
      */
     constructor(game) {
         this._game = game;
-        this._lastOrientation = null;
+        this._lastOrientation = {
+            beta: 0,  // rotation around x-axis (-180 to 180)
+            gamma: 0  // rotation around y-axis (-90 to 90)
+        };
         this._lastOrientationUpdateTime = 0;
         this._touchStart = { x: 0, y: 0 };
         this._touchEnd = { x: 0, y: 0 };
@@ -225,10 +228,6 @@ export class InputHandler {
         const currentOrientation = {
             beta: event.beta || 0,
             gamma: event.gamma || 0
-        }
-
-        if (!this._lastOrientation) {
-            this._lastOrientation = { ...currentOrientation };
         }
 
         const direction = calculateMotionControl(

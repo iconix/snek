@@ -38,6 +38,12 @@ for a detailed overview of game architecture, please refer to [ARCHITECTURE.md](
 λ firebase deploy
 ```
 
+staging env (firebase beta feature) - to deploy a temporary preview of the game, use:
+```bash
+λ firebase hosting:channel:deploy <channel-id>
+```
+(replace `<channel-id>` with a unique identifier for your preview)
+
 ## wishlist
 - [ ] reimplement in phaser, just to compare and contrast
 - [ ] motion controls 'could be better' - game is a bit too difficult/jittery with motion
