@@ -8,6 +8,8 @@ import { MockBoard } from '../__mocks__/mockBoard';
 import { MockItem } from '../__mocks__/mockItem';
 import { MockSnake } from '../__mocks__/mockSnake';
 
+const { GAME } = GAME_CONFIG;
+
 describe('Game', () => {
     let game, mockSnake, mockItem;
     let resetFilterSpy, setPauseGameFilterSpy;
@@ -121,7 +123,7 @@ describe('Game', () => {
         mockRequestAnimationFrame.mock.calls[5][0](currentTime);
 
         // check if score was updated
-        expect(game.state.score).toBe(GAME_CONFIG.GAME.SCORE_INCREMENT);
+        expect(game.state.score).toBe(GAME.SCORE_INCREMENT);
 
         // simulate game over condition
         mockSnake.didCollide.mockReturnValue(true);

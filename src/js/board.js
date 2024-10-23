@@ -2,7 +2,11 @@ import { GAME_CONFIG } from './config';
 
 const { BOARD } = GAME_CONFIG;
 
-const MOTION_REQUEST_BUTTON_ID = 'motionRequest';
+const BUTTON_IDS = {
+    MOTION_REQUEST: 'motionRequest',
+    MOTION_INDICATOR_TOGGLE: 'motionIndicatorToggle',
+    CLEAR_HIGH_SCORE: 'clearHighScore'
+};
 
 /**
  * Represents the game board.
@@ -10,7 +14,7 @@ const MOTION_REQUEST_BUTTON_ID = 'motionRequest';
 export class Board {
     /**
      * @param {HTMLCanvasElement} canvas - canvas element for the game
-     * @param {HTMLElement | null} ctrlPanel - control panel element
+     * @param {HTMLDivElement | null} ctrlPanel - control panel element
      */
     constructor(canvas, ctrlPanel) {
         this._canvas = canvas;
@@ -161,39 +165,96 @@ export class Board {
     }
 
     /**
-     * Creates a button in control panel to request motion control permission.
-     * If the button already exists, it returns the existing button.
-     * @returns {HTMLButtonElement | null} created button, or null if control panel does not exist
+     * Creates or retrieves button in control panel that requests motion control permission.
+     * @returns {HTMLButtonElement|null} motion request button, or null if the control panel does not exist
      */
     createMotionRequestButton() {
-        if (!this._ctrlPanel) return null;
-
-        let existingBtn = this.getMotionRequestButton();
-        if (existingBtn) return existingBtn;
-
-        let btn = document.createElement('button');
-        btn.innerHTML = 'Allow Motion Control';
-        btn.setAttribute('id', MOTION_REQUEST_BUTTON_ID);
-        btn.type = 'button';
-        this._ctrlPanel.appendChild(btn);
-        return btn;
+        return this._createOrGetButton(BUTTON_IDS.MOTION_REQUEST, 'Allow Motion');
     }
 
     /**
-     * Gets the motion control request button.
-     * @returns {HTMLButtonElement | null} motion request button if it exists; otherwise null
+     * Retrieves the motion request button.
+     * @returns {HTMLButtonElement|null} motion request button if it exists; otherwise null
      */
     getMotionRequestButton() {
-        const element = document.getElementById(MOTION_REQUEST_BUTTON_ID);
-        return element instanceof HTMLButtonElement ? element : null;
+        return this._getButton(BUTTON_IDS.MOTION_REQUEST);
     }
 
     /**
-     * Removes the motion control request button.
+     * Removes the motion request button from the DOM.
      */
     removeMotionRequestButton() {
-        let btn = this.getMotionRequestButton();
+        const btn = this.getMotionRequestButton();
         btn?.parentNode?.removeChild(btn);
+    }
+
+    /**
+     * Creates or retrieves button in control panel that toggles the motion indicator UI.
+     * @returns {HTMLButtonElement|null} motion indicator toggle button, or null if the control panel does not exist
+     */
+    createMotionIndicatorToggleButton() {
+        return this._createOrGetButton(BUTTON_IDS.MOTION_INDICATOR_TOGGLE, 'Motion Guide', {
+            style: 'display: none;'
+        });
+    }
+
+    /**
+     * Retrieves the motion indicator toggle button.
+     * @returns {HTMLButtonElement|null} motion indicator toggle button if it exists; otherwise null
+     */
+    getMotionIndicatorToggleButton() {
+        return this._getButton(BUTTON_IDS.MOTION_INDICATOR_TOGGLE);
+    }
+
+    /**
+     * Shows the motion indicator toggle button.
+     * If the button does not exist, this method does nothing.
+     */
+    showMotionIndicatorToggleButton() {
+        const toggleButton = this.getMotionIndicatorToggleButton();
+        if (toggleButton) {
+            toggleButton.classList.remove('hide');
+            toggleButton.classList.add('show');
+        }
+    }
+
+    /**
+     * Hides the motion indicator toggle button.
+     * If the button does not exist, this method does nothing.
+     */
+    hideMotionIndicatorToggleButton() {
+        const toggleButton = this.getMotionIndicatorToggleButton();
+        if (toggleButton) {
+            toggleButton.classList.remove('show');
+            toggleButton.classList.add('hide');
+        }
+    }
+
+    /**
+     * Updates the text of the motion indicator toggle button based on the indicator's visibility.
+     * @param {boolean} isIndicatorVisible - Whether the motion indicator is currently visible.
+     */
+    updateMotionIndicatorToggleButtonTitle(isIndicatorVisible) {
+        const toggleButton = this.getMotionIndicatorToggleButton();
+        if (toggleButton) {
+            toggleButton.title = isIndicatorVisible ? 'Hide Motion Guide' : 'Show Motion Guide';
+        }
+    }
+
+    /**
+     * Creates or retrieves button in control panel that clears the high score.
+     * @returns {HTMLButtonElement|null} clear high score button, or null if the control panel does not exist
+     */
+    createClearHighScoreButton() {
+        return this._createOrGetButton(BUTTON_IDS.CLEAR_HIGH_SCORE, 'Clear High Score');
+    }
+
+    /**
+     * Retrieves the clear high score button.
+     * @returns {HTMLButtonElement|null} clear high score button if it exists; otherwise null
+     */
+    getClearHighScoreButton() {
+        return this._getButton(BUTTON_IDS.CLEAR_HIGH_SCORE);
     }
 
     /**
@@ -222,12 +283,22 @@ export class Board {
      * @returns {boolean} true if permission is needed; false otherwise
      */
     needsPermission() {
-        return document.getElementById(MOTION_REQUEST_BUTTON_ID) !== null;
+        const requestButton = this.getMotionRequestButton();
+        if (!requestButton) return false;
+
+        // try modern Element.checkVisibility() first
+        if (typeof requestButton.checkVisibility === 'function') {
+            return requestButton.checkVisibility();
+        }
+
+        // fallback to checking computed style
+        const computedStyle = window.getComputedStyle(requestButton);
+        return computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
     }
 
     /**
      * Calculates the size of the game board.
-     * @returns {number} The calculated board size.
+     * @returns {number} calculated board size
      * @private
      */
     _calculateBoardSize() {
@@ -263,5 +334,40 @@ export class Board {
         if (!this._ctrlPanel) return;
         this._ctrlPanel.style.width = this._boardSize + 'px';
         this._ctrlPanel.style.height = BOARD.CTRL_PANEL_HEIGHT + 'px';
+    }
+
+    /**
+     * Creates or retrieves a button in the control panel.
+     * @param {string} id - ID of the button
+     * @param {string} text - text content of the button
+     * @param {Object} [options={}] - additional options for the button
+     * @param {string} [options.style] - inline CSS styles for the button
+     * @returns {HTMLButtonElement|null} created or existing button, or null if the control panel doesn't exist
+     * @private
+     */
+    _createOrGetButton(id, text, options = {}) {
+        if (!this._ctrlPanel) return null;
+
+        let existingBtn = this._getButton(id);
+        if (existingBtn) return existingBtn;
+
+        let btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = id;
+        btn.textContent = text;
+        if (options.style) btn.style.cssText = options.style;
+        this._ctrlPanel.appendChild(btn);
+        return btn;
+    }
+
+    /**
+     * Retrieves a button from the DOM by its ID.
+     * @param {string} id - ID of the button to retrieve
+     * @returns {HTMLButtonElement|null} button if it exists and is a button element; otherwise null
+     * @private
+     */
+    _getButton(id) {
+        const element = document.getElementById(id);
+        return element instanceof HTMLButtonElement ? element : null;
     }
 }

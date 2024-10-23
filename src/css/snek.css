@@ -1,13 +1,63 @@
-#controlPanel {
-    position: absolute;
-    left: 50%;
-    transform: translate(-50%, 0%);
-}
-
 #gameCanvas {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     border: 2px solid darkgreen;
+}
+
+/* control panel styles */
+
+#controlPanel {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+#controlPanel button {
+    background-color: transparent;
+    border: none;
+    color: darkgreen;
+    font-size: 16px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#controlPanel button:hover {
+    opacity: 0.7;
+}
+
+button#motionRequest {
+    /* hidden by default */
+    display: none;
+    color: darkgreen;
+}
+
+button#motionRequest.show {
+    display: flex;
+}
+
+button#motionIndicatorToggle {
+    /* hidden by default */
+    display: none;
+    color: darkgreen;
+}
+
+button#motionIndicatorToggle.show {
+    display: flex;
+}
+
+button#clearHighScore {
+    color: darkslategrey;
 }
