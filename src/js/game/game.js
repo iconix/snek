@@ -259,7 +259,7 @@ export class Game {
             this.motionControl.direction = direction;
         }
 
-        if (!this.motionControl.active) {
+        if (this.motionControl.active === null) {
             this.activateMotionControl();
         }
 
