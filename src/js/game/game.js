@@ -45,7 +45,6 @@ export class Game {
         *   orientation: { beta: number, gamma: number },
         *   direction: string | null,
         *   indicatorVisible: boolean,
-        *   sensitivity: number
         * }}
         */
         this.motionControl = {
@@ -53,7 +52,7 @@ export class Game {
             orientation: { beta: 0, gamma: 0 },
             direction: null,
             indicatorVisible: motionIndicatorVisible,
-            sensitivity: 1
+            // sensitivity: 1
         };
 
         this._boundMethods = {
@@ -113,15 +112,6 @@ export class Game {
         runGame();
     }
 
-    updateMotionControl(orientation, direction, sensitivity) {
-        this.orientation = orientation;
-        this.motionDirection = direction;
-        this.motionSensitivity = sensitivity;
-        if (this.motionIndicator) {
-            this.motionIndicator.update(orientation, direction, sensitivity);
-        }
-    }
-
     /**
      * Determines if the current frame of the game loop should be updated.
      * @param {DOMHighResTimeStamp} now - current timestamp
@@ -148,19 +138,6 @@ export class Game {
             // TODO: add to control panel
             // this.input._debugMotionControl();
         }
-    }
-
-    _initializeUI() {
-        const uiContainer = document.getElementById(UI_CONTAINER_ID);
-        if (!uiContainer) {
-            console.warn(`UI container with id '${UI_CONTAINER_ID}' not found. Motion control indicator will not be displayed.`);
-            return;
-        }
-
-        this.motionIndicator = new MotionControlIndicator(uiContainer, {
-            showInfo: false,
-            position: 'corner'
-        });
     }
 
     /**
@@ -276,7 +253,9 @@ export class Game {
      *
      * @param {{ beta: number, gamma: number }} orientation - current device orientation angles
      * @param {string|null} direction - current movement direction of the snake ('left', 'right', 'up', 'down', or null)
+     * TODO: sensitivity
      */
+    // updateMotionControl(orientation, direction, sensitivity) {
     updateMotionControl(orientation, direction) {
         this.motionControl.orientation = orientation;
         if (direction) {
@@ -288,6 +267,7 @@ export class Game {
         }
 
         if (this.motionIndicator && this.motionControl.indicatorVisible) {
+            // this.motionIndicator.update(orientation, direction, sensitivity);
             this.motionIndicator.update(orientation, direction);
         }
     }
@@ -301,6 +281,7 @@ export class Game {
         this.motionControl.active = true;
         this.state.setSpeed(GAME.SPEED_MS__MOTION);
         this.board.showMotionIndicatorToggleButton();
+        console.log('motion controls activated');
     }
 
     /**

@@ -36,7 +36,7 @@ export class InputHandler {
             gamma: 0  // rotation around y-axis (-90 to 90)
         };
         this._lastOrientationUpdateTime = 0;
-        this._sensitivityMultiplier = 1;
+        // this._sensitivityMultiplier = 1;
     }
 
     /**
@@ -236,20 +236,22 @@ export class InputHandler {
 
         if (!this._initialOrientation) {
             this._initialOrientation = { ...currentOrientation };
-            this._lastOrientation = { ...currentOrientation };
             // update the game's motion control state with initial orientation
-            this._game.updateMotionControl(currentOrientation, null, this._sensitivityMultiplier);
+            // this._game.updateMotionControl(currentOrientation, null, this._sensitivityMultiplier);
+            this._game.updateMotionControl(currentOrientation, null);
             return;
         }
 
-        const { direction, sensitivity } = calculateMotionControl(
+        // const { direction, sensitivity } = calculateMotionControl(
+        const direction = calculateMotionControl(
             currentOrientation,
+            this._initialOrientation,
             this._lastOrientation,
             currentUpdateTime,
             this._lastOrientationUpdateTime
         );
 
-        this._sensitivityMultiplier = sensitivity;
+        // this._sensitivityMultiplier = sensitivity;
 
         if (direction) {
             // used to determine when to switch from keyboard to motion controls
@@ -265,7 +267,7 @@ export class InputHandler {
         this._game.updateMotionControl(
             currentOrientation,
             this._game.snake.getCurrentDirection(),
-            this._sensitivityMultiplier
+            // this._sensitivityMultiplier
         );
     }
 
@@ -371,8 +373,6 @@ export class InputHandler {
 
         this._game.board.removeMotionRequestButton();
         this._game.activateMotionControl();
-
-        console.log('motion controls activated');
     }
 
     /**

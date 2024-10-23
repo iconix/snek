@@ -16,7 +16,7 @@ function initDebugPage() {
     let lastOrientation = null;
     let lastOrientationUpdateTime = null;
     let snakeDirection = null;
-    let sensitivityMultiplier = 1;
+    // let sensitivityMultiplier = 1;
 
     if (window.DeviceOrientationEvent) {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -62,14 +62,16 @@ function initDebugPage() {
             lastOrientation = { ...currentOrientation };
         }
 
-        const { direction, sensitivity } = calculateMotionControl(
+        // const { direction, sensitivity } = calculateMotionControl(
+        const direction = calculateMotionControl(
             currentOrientation,
+            initialOrientation,
             lastOrientation,
             currentUpdateTime,
             lastOrientationUpdateTime
         );
 
-        sensitivityMultiplier = sensitivity;
+        // sensitivityMultiplier = sensitivity;
 
         if (direction) {
             snakeDirection = direction;
@@ -79,7 +81,8 @@ function initDebugPage() {
             lastOrientation = currentOrientation;
         }
 
-        indicator.update(currentOrientation, snakeDirection, sensitivityMultiplier);
+        // indicator.update(currentOrientation, snakeDirection, sensitivityMultiplier);
+        indicator.update(currentOrientation, snakeDirection);
     }
 
     function showError(message) {

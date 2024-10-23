@@ -46,8 +46,8 @@ export const GAME_CONFIG = {
         SWIPE_SENSITIVITY: 10,          // delta of pixels needed to consider touch mvmt a 'swipe'
         MOTION_SENSITIVITY: 15,         // degree of motion needed to consider a device mvmt as intentional
         MOTION_THROTTLE_TIME_MS: 100,   // min time between motion control updates to prevent over-sensitivity
-        MOTION_DEADZONE: 2,             // in degrees TODO:
-        DOMINANT_DIRECTION_THRESHOLD: 5,// TODO:
+        // MOTION_DEADZONE: 2,             // in degrees TODO:
+        // DOMINANT_DIRECTION_THRESHOLD: 5,// TODO:
     },
 
     CANVAS: {

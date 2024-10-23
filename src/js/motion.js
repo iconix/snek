@@ -30,7 +30,8 @@ export class MotionControlIndicator {
      * @param {string|null} direction - current direction of movement (UP, DOWN, LEFT, RIGHT, or null)
      * TODO: sensitivity
      */
-    update(orientation, direction, sensitivity) {
+    // update(orientation, direction, sensitivity) {
+    update(orientation, direction) {
         const { beta, gamma } = orientation;
         const maxTilt = 30;
         const tiltX = Math.min(Math.max(gamma, -maxTilt), maxTilt) / maxTilt;
@@ -70,9 +71,9 @@ export class MotionControlIndicator {
             if (this.gammaValue instanceof HTMLSpanElement) {
                 this.gammaValue.textContent = gamma.toFixed(2);
             }
-            if (this.sensitivityValue instanceof HTMLSpanElement) {
-                this.sensitivityValue.textContent = sensitivity.toFixed(2);
-            }
+            // if (this.sensitivityValue instanceof HTMLSpanElement) {
+            //     this.sensitivityValue.textContent = sensitivity.toFixed(2);
+            // }
         }
     }
 
@@ -111,7 +112,7 @@ export class MotionControlIndicator {
                 ${this.options.showInfo ? `
                 <div class="info">
                     <p>Direction: <span class="direction-value">None</span></p>
-                    <p>Sensitivity: <span class="sensitivity-value">1.00</span></p>
+                    <!-- <p>Sensitivity: <span class="sensitivity-value">1.00</span></p> -->
                     <p>Beta: <span class="beta-value">0.00</span>°</p>
                     <p>Gamma: <span class="gamma-value">0.00</span>°</p>
                 </div>
@@ -122,7 +123,7 @@ export class MotionControlIndicator {
         this.dot = this.container.querySelector('.dot');
         this.arrows = this.container.querySelectorAll('.arrow');
         this.directionValue = this.container.querySelector('.direction-value');
-        this.sensitivityValue = this.container.querySelector('.sensitivity-value');
+        // this.sensitivityValue = this.container.querySelector('.sensitivity-value');
         this.betaValue = this.container.querySelector('.beta-value');
         this.gammaValue = this.container.querySelector('.gamma-value');
 
@@ -223,13 +224,16 @@ export class MotionControlIndicator {
  * @returns {string|null} direction - calculated direction (UP, DOWN, LEFT, RIGHT),
  *                        or null if no significant motion or if the update is too soon
  */
-export function calculateMotionControl(currentOrientation, initialOrientation, lastOrientation, currentUpdateTime, lastUpdateTime, sensitivityMultiplier) {
+// export function calculateMotionControl(currentOrientation, initialOrientation, lastOrientation, currentUpdateTime, lastUpdateTime, sensitivityMultiplier) {
+    export function calculateMotionControl(currentOrientation, initialOrientation, lastOrientation, currentUpdateTime, lastUpdateTime) {
     if (!initialOrientation) {
-        return { direction: null, sensitivity: 1 };
+        // return { direction: null, sensitivity: sensitivityMultiplier };
+        return null;
     }
 
     // ensure we are not updating too frequently
     if (currentUpdateTime - lastUpdateTime < INPUT.MOTION_THROTTLE_TIME_MS) {
+        // return { direction: null, sensitivity: sensitivityMultiplier };
         return null;
     }
 
@@ -246,21 +250,21 @@ export function calculateMotionControl(currentOrientation, initialOrientation, l
     };
 
     // update sensitivity based on total change from initial position
-    const magnitudeChange = Math.sqrt(totalChange.beta ** 2 + totalChange.gamma ** 2);
-    const newSensitivityMultiplier = 1 + (magnitudeChange / 45);
+    // const magnitudeChange = Math.sqrt(totalChange.beta ** 2 + totalChange.gamma ** 2);
+    // const newSensitivityMultiplier = 1 + (magnitudeChange / 45);
 
-    // apply deadzone to recent change
-    const adjustedDeadzone = INPUT.MOTION_DEADZONE / newSensitivityMultiplier;
-    if (Math.abs(recentChange.beta) <= adjustedDeadzone) recentChange.beta = 0;
-    if (Math.abs(recentChange.gamma) <= adjustedDeadzone) recentChange.gamma = 0;
+    // // apply deadzone to recent change
+    // const adjustedDeadzone = INPUT.MOTION_DEADZONE / newSensitivityMultiplier;
+    // if (Math.abs(recentChange.beta) <= adjustedDeadzone) recentChange.beta = 0;
+    // if (Math.abs(recentChange.gamma) <= adjustedDeadzone) recentChange.gamma = 0;
 
     // determine dominant direction based on recent change
-    const direction = isSignificantMotion(recentChange, sensitivityMultiplier) ? getDirectionFromOrientation(recentChange) : null;
-
-    return {
-        direction,
-        sensitivity: newSensitivityMultiplier
-    };
+    // const direction = isSignificantMotion(recentChange, sensitivityMultiplier) ? getDirectionFromOrientation(recentChange) : null;
+    // return {
+    //     direction,
+    //     sensitivity: newSensitivityMultiplier
+    // };
+    return isSignificantMotion(recentChange) ? getDirectionFromOrientation(recentChange) : null;
 }
 
 /**
@@ -273,8 +277,9 @@ export function calculateMotionControl(currentOrientation, initialOrientation, l
  * TODO: sensitivityMultiplier
  * @private
  */
-function isSignificantMotion(orientationChange, sensitivityMultiplier) {
-    const threshold = INPUT.MOTION_SENSITIVITY / sensitivityMultiplier;
+// function isSignificantMotion(orientationChange, sensitivityMultiplier) {
+function isSignificantMotion(orientationChange) {
+    const threshold = INPUT.MOTION_SENSITIVITY;
     return Math.abs(orientationChange.beta) > threshold || Math.abs(orientationChange.gamma) > threshold;
 }
 
@@ -287,13 +292,15 @@ function isSignificantMotion(orientationChange, sensitivityMultiplier) {
 function getDirectionFromOrientation(orientationChange) {
     let direction = null;
 
-    // determine dominant direction based on recent change
-    const absBeta = Math.abs(orientationChange.beta);
-    const absGamma = Math.abs(orientationChange.gamma);
+    // // determine dominant direction based on recent change
+    // const absBeta = Math.abs(orientationChange.beta);
+    // const absGamma = Math.abs(orientationChange.gamma);
 
-    if (absBeta > absGamma && absBeta - absGamma > INPUT.DOMINANT_DIRECTION_THRESHOLD) {
+    // if (absBeta > absGamma && absBeta - absGamma > INPUT.DOMINANT_DIRECTION_THRESHOLD) {
+    if (Math.abs(orientationChange.beta) > Math.abs(orientationChange.gamma)) {
         direction = orientationChange.beta < 0 ? DIRECTION_UP : DIRECTION_DOWN;
-    } else if (absGamma > absBeta && absGamma - absBeta > INPUT.DOMINANT_DIRECTION_THRESHOLD) {
+        // } else if (absGamma > absBeta && absGamma - absBeta > INPUT.DOMINANT_DIRECTION_THRESHOLD) {
+    } else {
         direction = orientationChange.gamma < 0 ? DIRECTION_LEFT : DIRECTION_RIGHT;
     }
     return direction;
