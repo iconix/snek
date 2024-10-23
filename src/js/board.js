@@ -284,7 +284,16 @@ export class Board {
      */
     needsPermission() {
         const requestButton = this.getMotionRequestButton();
-        return requestButton !== null && requestButton.checkVisibility();
+        if (!requestButton) return false;
+
+        // try modern Element.checkVisibility() first
+        if (typeof requestButton.checkVisibility === 'function') {
+            return requestButton.checkVisibility();
+        }
+
+        // fallback to checking computed style
+        const computedStyle = window.getComputedStyle(requestButton);
+        return computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
     }
 
     /**

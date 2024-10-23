@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from '../config';
 
-const { INPUT, STATE } = GAME_CONFIG;
+const { GAME, STATE } = GAME_CONFIG;
 
 /**
  * Represents the state of the game.
@@ -15,7 +15,7 @@ export class GameState {
         // values
         this._score = 0;
         this._highScore = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_HIGH_SCORE, 0);
-        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, INPUT.GAME_SPEED_MS__ARROW);
+        this._speed = this._getItemSafely(STATE.LOCAL_STORAGE_KEY_GAME_SPEED, GAME.SPEED_MS__ARROW);
     }
 
     /**

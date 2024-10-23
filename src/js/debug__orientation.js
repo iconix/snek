@@ -2,7 +2,7 @@ import { MotionControlIndicator, calculateMotionControl } from './motion';
 
 function initDebugPage() {
     const container = document.getElementById('motionIndicator');
-    if (!container) {
+    if (!(container instanceof HTMLDivElement)) {
         console.error('motion indicator container not found');
         return;
     }
