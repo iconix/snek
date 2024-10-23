@@ -356,8 +356,6 @@ export class InputHandler {
 
         this._game.board.removeMotionRequestButton();
         this._game.activateMotionControl();
-
-        console.log('motion controls activated');
     }
 
     /**

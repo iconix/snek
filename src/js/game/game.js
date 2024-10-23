@@ -275,8 +275,14 @@ export class Game {
      */
     activateMotionControl() {
         this.motionControl.active = true;
+        this.motionControl.indicatorVisible = true;
+        if (this.motionIndicator) {
+            this.motionIndicator.show();
+            this.board.updateMotionIndicatorToggleButtonTitle(this.motionControl.indicatorVisible);
+        }
         this.state.setSpeed(GAME.SPEED_MS__MOTION);
         this.board.showMotionIndicatorToggleButton();
+        console.log('motion controls activated');
     }
 
     /**
@@ -289,6 +295,7 @@ export class Game {
         this.motionControl.indicatorVisible = false;
         if (this.motionIndicator) {
             this.motionIndicator.hide();
+            this.board.updateMotionIndicatorToggleButtonTitle(this.motionControl.indicatorVisible);
         }
         this.state.setSpeed(GAME.SPEED_MS__ARROW);
         this.board.hideMotionIndicatorToggleButton();
